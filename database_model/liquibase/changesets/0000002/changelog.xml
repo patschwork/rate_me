@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+	<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd
+    http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd"
+	
+	logicalFilePath="0000002/changelog.xml">
+
+	<changeSet author="patrick_schmitz" id="0000002">
+		<sql stripComments="false" splitStatements="false">
+		<![CDATA[
+			INSERT INTO migration (version,apply_time) VALUES ('m000000_000000_base',1585684768);
+			INSERT INTO migration (version,apply_time) VALUES ('m130524_201442_init',1585684782);
+			INSERT INTO migration (version,apply_time) VALUES ('m190124_110200_add_verification_token_column_to_user_table',1585684782);
+		]]>		
+		</sql>
+		<rollback><sql stripComments="false" splitStatements="false">
+		<![CDATA[
+			TRUNCATE TABLE public.migration;
+        ]]>		
+		</sql></rollback>
+		<comment>
+		<![CDATA[
+		Intially values from already done database migrations steps of Yii2
+		]]>
+		</comment>
+</changeSet>
+</databaseChangeLog>
