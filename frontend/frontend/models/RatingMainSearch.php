@@ -47,6 +47,8 @@ class RatingMainSearch extends RatingMain
     {
         $query = RatingMain::find();
         $query->joinWith(['fkRatingType rattype']);
+        $query->joinWith(['cntRatingStars cntratstars']);
+        
         // add conditions that should always apply here
 
         $dataProvider = new ActiveDataProvider([
@@ -59,6 +61,13 @@ class RatingMainSearch extends RatingMain
             // in my case they are prefixed with "tbl_"
             'asc' => ['rattype.name' => SORT_ASC],
             'desc' => ['rattype.name' => SORT_DESC],
+        ];
+
+        $dataProvider->sort->attributes['cntRatingStars'] = [
+            // The tables are the ones our relation are configured to
+            // in my case they are prefixed with "tbl_"
+            'asc' => ['cntratstars.avg_ratings_per_rating_main' => SORT_ASC],
+            'desc' => ['cntratstars.avg_ratings_per_rating_main' => SORT_DESC],
         ];
 
         $this->load($params);

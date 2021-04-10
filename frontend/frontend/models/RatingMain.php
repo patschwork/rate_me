@@ -95,4 +95,9 @@ class RatingMain extends \yii\db\ActiveRecord
     {
         return $this->hasMany(RatingStars::className(), ['fk_rating_main_id' => 'id']);
     }
+
+    public function getCntRatingStars()
+    {
+        return $this->hasOne(VCntRatingsPerRatingMain::className(), ['fk_rating_main_id' => 'id']);
+    }
 }

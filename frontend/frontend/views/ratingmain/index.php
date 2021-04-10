@@ -2,6 +2,8 @@
 
 use yii\helpers\Html;
 use yii\grid\GridView;
+use kartik\rating\StarRating;
+use phpDocumentor\Reflection\Types\Null_;
 
 /* @var $this yii\web\View */
 /* @var $searchModel frontend\models\RatingMainSearch */
@@ -54,6 +56,25 @@ $this->params['breadcrumbs'][] = $this->title;
 
             'name',
             'vendor',
+            [
+                'attribute' => 'cntRatingStars',
+                'format' => 'raw',
+                'label' => Yii::t('app', 'Stars'),
+                'value' => function($model, $key) 
+                {
+                    $value = 0;
+                    if ($model->cntRatingStars !== null)
+                    {
+                        $value = $model->cntRatingStars->avg_ratings_per_rating_main;
+                    }
+                    return StarRating::widget(['name' => 'rating_' . $key, 'value' =>  $value, 'language' => 'de',
+                        'pluginOptions' => [
+                            'displayOnly' => true,
+                            'size' => 'm',
+                        ]
+                    ]);
+                },
+            ],
             'description:html',
             'price',
             'packaging_unit',
@@ -62,6 +83,11 @@ $this->params['breadcrumbs'][] = $this->title;
                 'label' => 'Type',
                 'value' => 'fkRatingType.name'
             ],
+            // [
+            //     'attribute' => 'cntRatingStars',
+            //     'label' => 'Avg rating',
+            //     'value' => 'cntRatingStars.avg_ratings_per_rating_main'
+            // ],
             'id',
             //'fk_rating_type_id',
         ],
