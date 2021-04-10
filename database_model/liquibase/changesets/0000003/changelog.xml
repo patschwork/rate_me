@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+	<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd
+    http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd"
+	
+	logicalFilePath="0000003/changelog.xml">
+
+	<changeSet author="patrick_schmitz" id="0000003">
+		<sql stripComments="false" splitStatements="false">
+		<![CDATA[
+CREATE OR REPLACE VIEW public.v_cnt_ratings_per_rating_main
+AS SELECT rs.fk_rating_main_id,
+	count(rs.fk_rating_main_id) AS cnt_ratings_per_rating_main,
+	avg(rs.stars) AS avg_ratings_per_rating_main
+   FROM rating_stars rs
+  GROUP BY rs.fk_rating_main_id;
+		]]>		
+		</sql>
+		<rollback><sql stripComments="false" splitStatements="false">
+		<![CDATA[
+			DROP VIEW public.v_cnt_ratings_per_rating_main
+        ]]>		
+		</sql></rollback>
+		<comment>
+		<![CDATA[
+		New view public.v_cnt_ratings_per_rating_main
+		]]>
+		</comment>
+</changeSet>
+</databaseChangeLog>

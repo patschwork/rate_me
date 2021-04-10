@@ -8,4 +8,5 @@
 
   <include relativeToChangelogFile="true" file="changesets/0000001/changelog.xml"/>  <!-- SQL | Intially database structure -->
   <include relativeToChangelogFile="true" file="changesets/0000002/changelog.xml"/>  <!-- SQL | public.migration -->
+  <include relativeToChangelogFile="true" file="changesets/0000003/changelog.xml"/>  <!-- SQL CREATE VIEW | public.v_cnt_ratings_per_rating_main -->
 </databaseChangeLog> 
