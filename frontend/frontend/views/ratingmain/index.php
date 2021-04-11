@@ -63,16 +63,21 @@ $this->params['breadcrumbs'][] = $this->title;
                 'value' => function($model, $key) 
                 {
                     $value = 0;
+                    $count = 0;
                     if ($model->cntRatingStars !== null)
                     {
                         $value = $model->cntRatingStars->avg_ratings_per_rating_main;
+                        $count = $value == 0 ? 0 : $model->cntRatingStars->cnt_ratings_per_rating_main;
+                        
                     }
                     return StarRating::widget(['name' => 'rating_' . $key, 'value' =>  $value, 'language' => 'de',
                         'pluginOptions' => [
                             'displayOnly' => true,
                             'size' => 'm',
                         ]
-                    ]);
+                    ]) . "<br>"
+                       .Yii::t('app', '{count,plural,=0{Keine Bewertung bisher} =1{1 Bewertung} other{# Bewertungen}}',['count' => $count,])
+                    ;
                 },
             ],
             'description:html',
