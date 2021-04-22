@@ -54,7 +54,7 @@ $this->title = 'Rate me';
                 <p><?= "<a class=\"btn btn-default\" href=\"" . Yii::$app->urlManager->createUrl(["ratingtype"]) . "\">Types</a><br>" ?></p>
             </div>
             <div class="col-lg-4">
-                <h2>Declare the type<br><br></h2>
+                <h2>Import data from external source<br><br></h2>
 
                 <p></p>
 
