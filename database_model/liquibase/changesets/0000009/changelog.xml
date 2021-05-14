@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+	<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd
+    http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd"
+	
+	logicalFilePath="0000009/changelog.xml">
+
+	<changeSet author="patrick_schmitz" id="0000009">
+		<sql stripComments="false" splitStatements="false">
+		<![CDATA[
+			ALTER TABLE public.rating_main_additional_key_value
+			ADD CONSTRAINT check_combination
+			CHECK
+			(
+			   CASE
+				WHEN   -- only one value_* field may be filled at one row
+					   (CASE WHEN COALESCE(value_string_1,'')='' THEN 0 ELSE 1 END)
+					 + (CASE WHEN value_integer_1 IS NULL THEN 0 ELSE 1 END)
+					 + (CASE WHEN value_currency_1 IS NULL THEN 0 ELSE 1 END)
+					 + (CASE WHEN value_numeric_1 IS NULL THEN 0 ELSE 1 END)
+					 + (CASE WHEN value_bool_1 IS NULL THEN 0 ELSE 1 END) = 1
+					AND has_to_be_lookup_value_id(fk_rating_type_config_fields_id) = false
+					AND (
+						 (LEFT(UPPER(has_to_be_datatype(fk_rating_type_config_fields_id)),3) = 'INT' AND value_integer_1 IS NOT NULL)
+						 OR
+						 (UPPER(has_to_be_datatype(fk_rating_type_config_fields_id)) = 'STRING' AND COALESCE(value_string_1,'')<>'')
+						 OR
+						 (UPPER(has_to_be_datatype(fk_rating_type_config_fields_id)) = 'CURRENCY' AND value_currency_1 IS NOT NULL)
+						 OR
+						 (UPPER(has_to_be_datatype(fk_rating_type_config_fields_id)) = 'NUMERIC' AND value_numeric_1 IS NOT NULL)
+						 OR
+						 (LEFT(UPPER(has_to_be_datatype(fk_rating_type_config_fields_id)),4) = 'BOOL' AND value_bool_1 IS NOT NULL)
+						)
+					AND fk_rating_type_config_lookup_values_id IS NULL THEN true
+				WHEN   -- if fk_rating_type_config_lookup_values_id is set, then no value_* field may be filled
+						COALESCE(value_string_1,'')='' 
+					AND value_integer_1 IS NULL 
+					AND value_currency_1 IS NULL 
+					AND value_numeric_1 IS NULL 
+					AND value_bool_1 IS NULL
+					AND has_to_be_lookup_value_id(fk_rating_type_config_fields_id) = true
+					AND fk_rating_type_config_lookup_values_id IS NOT NULL THEN true
+				ELSE false END
+			)
+		]]>		
+		</sql>
+		<rollback><sql stripComments="false" splitStatements="false">
+		<![CDATA[
+			ALTER TABLE public.rating_main_additional_key_value DROP CONSTRAINT check_combination
+        ]]>		
+		</sql></rollback>
+		<comment>
+		<![CDATA[
+		Add check constraint "check_combination" to table public.rating_main_additional_key_value
+		]]>
+		</comment>
+</changeSet>
+</databaseChangeLog>

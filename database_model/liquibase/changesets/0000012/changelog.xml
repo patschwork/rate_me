@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+	<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd
+    http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd"
+	
+	logicalFilePath="0000012/changelog.xml">
+
+	<changeSet author="patrick_schmitz" id="0000012">
+		<createView schemaName="public" viewName="v_additional_key_value_entries" replaceIfExists="false">
+		<![CDATA[
+			SELECT
+				rm_akv.id
+			   ,rm_akv.fk_rating_main_id
+			   ,NULL AS fk_rating_stars_id
+			   ,rt_cf.fieldname
+			   ,COALESCE(rt_clv."value", 
+					COALESCE(rm_akv.value_integer_1::varchar(100), 
+						COALESCE(rm_akv.value_string_1, 
+							COALESCE(rm_akv.value_bool_1::varchar(200), 
+								COALESCE(rm_akv.value_currency_1::varchar(200), 
+									COALESCE(rm_akv.value_numeric_1::varchar(200))))))) AS "value"
+			FROM public.rating_main_additional_key_value rm_akv
+			LEFT JOIN public.rating_type_config_fields rt_cf ON 1=1
+			   AND rt_cf.id = rm_akv.fk_rating_type_config_fields_id
+			LEFT JOIN public.rating_type_config_lookup_values rt_clv ON 1=1
+			   AND rt_clv.id = rm_akv.fk_rating_type_config_lookup_values_id
+				UNION ALL
+			SELECT
+				rs_akv.id
+			   ,NULL AS fk_rating_main_id
+			   ,rs_akv.fk_rating_stars_id
+			   ,rt_cf.fieldname
+			   ,COALESCE(rt_clv."value", 
+					COALESCE(rs_akv.value_integer_1::varchar(100), 
+						COALESCE(rs_akv.value_string_1, 
+							COALESCE(rs_akv.value_bool_1::varchar(200), 
+								COALESCE(rs_akv.value_currency_1::varchar(200), 
+									COALESCE(rs_akv.value_numeric_1::varchar(200))))))) AS "value"
+			FROM public.rating_stars_additional_key_value rs_akv
+			LEFT JOIN public.rating_type_config_fields rt_cf ON 1=1
+			   AND rt_cf.id = rs_akv.fk_rating_type_config_fields_id
+			LEFT JOIN public.rating_type_config_lookup_values rt_clv ON 1=1
+			   AND rt_clv.id = rs_akv.fk_rating_type_config_lookup_values_id
+			ORDER BY
+				fk_rating_main_id
+			   ,fk_rating_stars_id
+		]]>		
+		</createView>
+		<comment>
+		<![CDATA[
+		New view public.v_additional_key_value_entries
+		]]>
+		</comment>
+</changeSet>
+</databaseChangeLog>

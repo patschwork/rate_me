@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+	<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd
+    http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd"
+	
+	logicalFilePath="0000004/changelog.xml">
+
+	<changeSet author="patrick_schmitz" id="0000004">
+		<sql stripComments="false" splitStatements="false">
+		<![CDATA[
+			CREATE SEQUENCE public.rating_type_config_fields_id_seq
+				START WITH 1
+				INCREMENT BY 1
+				NO MINVALUE
+				NO MAXVALUE
+				CACHE 1;
+				
+			CREATE TABLE public.rating_type_config_fields
+			(
+				id integer NOT NULL DEFAULT nextval('rating_type_config_fields_id_seq'::regclass),
+				fk_rating_type_config_id integer,
+				fieldname character varying(255) COLLATE pg_catalog."default",
+				datatype character varying(255) COLLATE pg_catalog."default",
+				allowed_values_csv text COLLATE pg_catalog."default",
+				description character varying(4000) COLLATE pg_catalog."default",
+				used_4_rating_main boolean NOT NULL DEFAULT false,
+				used_4_rating_stars boolean NOT NULL DEFAULT false,
+				depends_on_id integer,
+				is_a_lookup_value boolean NOT NULL DEFAULT false,
+				input_is_mandadory boolean NOT NULL DEFAULT false,
+				user_can_make_new_suggestion boolean NOT NULL DEFAULT true,
+				CONSTRAINT rating_type_config_fields_pkey PRIMARY KEY (id),
+				CONSTRAINT depends_on_id FOREIGN KEY (depends_on_id)
+					REFERENCES public.rating_type_config_fields (id) MATCH SIMPLE
+					ON UPDATE NO ACTION
+					ON DELETE NO ACTION
+					NOT VALID,
+				CONSTRAINT rating_type_fk_rating_type_config_fields_id_fkey FOREIGN KEY (fk_rating_type_config_id)
+					REFERENCES public.rating_type_config (id) MATCH SIMPLE
+					ON UPDATE NO ACTION
+					ON DELETE NO ACTION,
+				CONSTRAINT used_4_xor CHECK ((used_4_rating_main::integer + used_4_rating_stars::integer) <= 1)
+			);
+			
+			ALTER SEQUENCE public.rating_type_config_fields_id_seq OWNED BY public.rating_type_config_fields.id;
+		]]>		
+		</sql>
+		<rollback><sql stripComments="false" splitStatements="false">
+		<![CDATA[
+			DROP TABLE public.rating_type_config_fields;
+        ]]>		
+		</sql></rollback>
+		<comment>
+		<![CDATA[
+		New table public.rating_type_config_fields
+		]]>
+		</comment>
+</changeSet>
+</databaseChangeLog>

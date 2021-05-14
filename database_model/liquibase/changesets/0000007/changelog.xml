@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+	<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd
+    http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd"
+	
+	logicalFilePath="0000007/changelog.xml">
+
+	<changeSet author="patrick_schmitz" id="0000007">
+		<sql stripComments="false" splitStatements="false">
+		<![CDATA[
+			CREATE TABLE public.rating_type_config_lookup_values
+			(
+				id serial NOT NULL,
+				fk_rating_type_config_id integer NOT NULL,
+				fk_rating_type_config_fields_id integer NOT NULL,
+				value character varying(500) COLLATE pg_catalog."default" NOT NULL,
+				new_offered_value_from_a_user_accepted boolean,
+				fk_user_id_for_new_offered_value integer,
+				parent_id integer,
+				CONSTRAINT rating_type_config_lookup_values_pkey PRIMARY KEY (id),
+				CONSTRAINT fk_rating_type_config_fields_id FOREIGN KEY (fk_rating_type_config_fields_id)
+					REFERENCES public.rating_type_config_fields (id) MATCH SIMPLE
+					ON UPDATE NO ACTION
+					ON DELETE NO ACTION,
+				CONSTRAINT fk_rating_type_config_id FOREIGN KEY (fk_rating_type_config_id)
+					REFERENCES public.rating_type_config (id) MATCH SIMPLE
+					ON UPDATE NO ACTION
+					ON DELETE NO ACTION,
+				CONSTRAINT fk_user_id_for_new_offered_value FOREIGN KEY (fk_user_id_for_new_offered_value)
+					REFERENCES public."user" (id) MATCH SIMPLE
+					ON UPDATE NO ACTION
+					ON DELETE NO ACTION
+					NOT VALID,
+				CONSTRAINT parent_id FOREIGN KEY (parent_id)
+					REFERENCES public.rating_type_config_lookup_values (id) MATCH SIMPLE
+					ON UPDATE NO ACTION
+					ON DELETE NO ACTION
+					NOT VALID
+			);
+			
+			COMMENT ON TABLE public.rating_type_config_lookup_values
+				IS 'This table offers the lookup values for the specific combination';
+		]]>		
+		</sql>
+		<rollback><sql stripComments="false" splitStatements="false">
+		<![CDATA[
+			DROP TABLE public.rating_type_config_lookup_values;
+        ]]>		
+		</sql></rollback>
+		<comment>
+		<![CDATA[
+		New table public.rating_type_config_lookup_values
+		]]>
+		</comment>
+</changeSet>
+</databaseChangeLog>

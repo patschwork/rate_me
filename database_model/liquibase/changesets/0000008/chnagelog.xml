@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+	<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd
+    http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd"
+	
+	logicalFilePath="0000008/changelog.xml">
+
+	<changeSet author="patrick_schmitz" id="0000008">
+		<sql stripComments="false" splitStatements="false">
+		<![CDATA[
+			CREATE TABLE public.rating_main_additional_key_value
+			(
+				id serial NOT NULL,
+				fk_rating_main_id integer NOT NULL,
+				fk_rating_type_config_fields_id integer NOT NULL,
+				fk_rating_type_config_lookup_values_id integer,
+				value_string_1 character varying(4000) COLLATE pg_catalog."default",
+				value_integer_1 integer,
+				value_currency_1 numeric(18,2),
+				value_numeric_1 numeric(18,10),
+				value_bool_1 boolean,
+				CONSTRAINT "PK" PRIMARY KEY (id),
+				CONSTRAINT fk_rating_main_id FOREIGN KEY (fk_rating_main_id)
+					REFERENCES public.rating_main (id) MATCH SIMPLE
+					ON UPDATE NO ACTION
+					ON DELETE CASCADE,
+				CONSTRAINT fk_rating_type_config_fields_id FOREIGN KEY (fk_rating_type_config_fields_id)
+					REFERENCES public.rating_type_config_fields (id) MATCH SIMPLE
+					ON UPDATE NO ACTION
+					ON DELETE NO ACTION,
+				CONSTRAINT fk_rating_type_config_lookup_values_id FOREIGN KEY (fk_rating_type_config_lookup_values_id)
+					REFERENCES public.rating_type_config_lookup_values (id) MATCH SIMPLE
+					ON UPDATE NO ACTION
+					ON DELETE NO ACTION
+			)
+		]]>		
+		</sql>
+		<rollback><sql stripComments="false" splitStatements="false">
+		<![CDATA[
+			DROP TABLE public.rating_main_additional_key_value;
+        ]]>		
+		</sql></rollback>
+		<comment>
+		<![CDATA[
+		New table public.rating_main_additional_key_value
+		]]>
+		</comment>
+</changeSet>
+</databaseChangeLog>

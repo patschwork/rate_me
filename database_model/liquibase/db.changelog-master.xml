@@ -9,4 +9,13 @@
   <include relativeToChangelogFile="true" file="changesets/0000001/changelog.xml"/>  <!-- SQL | Intially database structure -->
   <include relativeToChangelogFile="true" file="changesets/0000002/changelog.xml"/>  <!-- SQL | public.migration -->
   <include relativeToChangelogFile="true" file="changesets/0000003/changelog.xml"/>  <!-- SQL CREATE VIEW | public.v_cnt_ratings_per_rating_main -->
-</databaseChangeLog> 
+  <include relativeToChangelogFile="true" file="changesets/0000004/changelog.xml"/>  <!-- SQL CREATE TABLE | public.rating_type_config_fields -->
+  <include relativeToChangelogFile="true" file="changesets/0000005/changelog.xml"/>  <!-- createProcedure | public.has_to_be_datatype -->
+  <include relativeToChangelogFile="true" file="changesets/0000006/changelog.xml"/>  <!-- createProcedure | public.has_to_be_lookup_value_id -->
+  <include relativeToChangelogFile="true" file="changesets/0000007/changelog.xml"/>  <!-- SQL CREATE TABLE | public.rating_type_config_lookup_values -->
+  <include relativeToChangelogFile="true" file="changesets/0000008/changelog.xml"/>  <!-- SQL CREATE TABLE | public.rating_main_additional_key_value -->
+  <include relativeToChangelogFile="true" file="changesets/0000009/changelog.xml"/>  <!-- SQL ALTER TABLE | public.rating_main_additional_key_value -->
+  <include relativeToChangelogFile="true" file="changesets/0000010/changelog.xml"/>  <!-- SQL CREATE TABLE | public.rating_stars_additional_key_value -->
+  <include relativeToChangelogFile="true" file="changesets/0000011/changelog.xml"/>  <!-- SQL ALTER TABLE | public.rating_stars_additional_key_value -->
+  <include relativeToChangelogFile="true" file="changesets/0000012/changelog.xml"/>  <!-- createView | public.v_additional_key_value_entries -->
+</databaseChangeLog>

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+	<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd
+    http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd"
+	
+	logicalFilePath="0000006/changelog.xml">
+
+	<changeSet author="patrick_schmitz" id="0000006">
+		<createProcedure dbms="postgresql" schemaName="public" procedureName="has_to_be_lookup_value_id">
+		<![CDATA[
+			CREATE OR REPLACE FUNCTION public.has_to_be_lookup_value_id(
+				fk_rating_type_config_fields_id integer)
+			RETURNS boolean
+				LANGUAGE 'plpgsql'
+				COST 100
+				VOLATILE 
+			AS $BODY$
+			DECLARE 
+			  returnValue boolean;
+			BEGIN
+				SELECT is_a_lookup_value 
+				FROM rating_type_config_fields 
+				WHERE id=fk_rating_type_config_fields_id INTO returnValue;
+			RETURN returnValue;
+			END;
+			$BODY$;
+		]]>		
+		</createProcedure>
+		<rollback><sql stripComments="false" splitStatements="false">
+		<![CDATA[
+			DROP FUNCTION public.has_to_be_lookup_value_id(integer);
+        ]]>		
+		</sql></rollback>
+		<comment>
+		<![CDATA[
+		New function public.has_to_be_lookup_value_id
+		]]>
+		</comment>
+</changeSet>
+</databaseChangeLog>
