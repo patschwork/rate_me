@@ -1,5 +1,6 @@
 <?php
 
+use app\models\VAdditionalKeyValueEntries;
 use yii\helpers\Html;
 use yii\widgets\DetailView;
 
@@ -26,6 +27,7 @@ $this->params['breadcrumbs'][] = $this->title;
         'paramShowTheBreadcrumb' => false,
         'paramShowTheButtons' => false,
         'paramShowTheTitle' => false,
+        'additionalFieldsMain' => $additionalFieldsMain,
         ]);
     ?>
     <hr>
@@ -37,11 +39,16 @@ $this->params['breadcrumbs'][] = $this->title;
     <?php
     foreach($model_stars as $key=>$model_star)
     {
+        $modelVAdditionalKeyValueEntries = VAdditionalKeyValueEntries::find()->select(['fieldname', 'value'])->where(["fk_rating_stars_id" => $model_star->id])->asArray()->all();
+        $additionalFieldsStars = array();
+        foreach($modelVAdditionalKeyValueEntries as $key=>$value) { $additionalFieldsStars[$value["fieldname"]] = $value["value"]; }
+
         echo $this->render('/ratingstars/view', [
             'model' => $model_star,
             'paramShowTheBreadcrumb' => false,
             'paramShowTheButtons' => false,
             'paramShowTheTitle' => false,
+            'additionalFieldsStars' => $additionalFieldsStars,
             ]);
         }
         ?>

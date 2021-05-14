@@ -18,6 +18,11 @@ $this->params['breadcrumbs'][] = Yii::t('app', 'Update');
 
     <?= $this->render('_form', [
         'model' => $model,
+
+        'allModelRatingTypeConfigFields' => $allModelRatingTypeConfigFields,
+        'dynamic_type_config_model' => $dynamic_type_config_model,
+        'fieldValue' => $fieldValue,
+        'fieldNamePrefix' => $fieldNamePrefix,
     ]) ?>
 
 </div>

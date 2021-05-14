@@ -84,4 +84,14 @@ if ($showTheBreadcrumb)
         'template' => "<tr><th style='width: 25%;'>{label}</th><td>{value}</td></tr>"
     ]) ?>
 
+    <?php
+        echo DetailView::widget([
+            'model'      => $additionalFieldsStars,
+            'attributes' => array_map(function ($key) {
+                return "$key:raw"; 
+            }, array_keys($additionalFieldsStars)),
+            'template' => "<tr><th style='width: 25%;'>{label}</th><td>{value}</td></tr>"
+        ]);
+    ?>
+
 </div>

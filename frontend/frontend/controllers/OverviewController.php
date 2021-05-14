@@ -6,6 +6,7 @@ use app\models\RatingImages;
 use Yii;
 use app\models\RatingMain;
 use app\models\RatingStars;
+use app\models\VAdditionalKeyValueEntries;
 use frontend\models\RatingMainSearch;
 use yii\helpers\VarDumper;
 use yii\web\Controller;
@@ -53,6 +54,16 @@ class OverviewController extends Controller
         throw new NotFoundHttpException(Yii::t('app', 'The requested page does not exist.'));
     }
 
+    protected function findadditionalFieldsMain($id)
+    {
+        $modelVAdditionalKeyValueEntries = VAdditionalKeyValueEntries::find()->select(['fieldname', 'value'])->where(["fk_rating_main_id" => $id])->asArray()->all();
+        $additionalFieldsMain = array();
+        foreach($modelVAdditionalKeyValueEntries as $key=>$value) { $additionalFieldsMain[$value["fieldname"]] = $value["value"]; }
+        return $additionalFieldsMain;
+    }
+
+
+
     // Test URL: http://patsch3/rate_me_dev/frontend/web/index.php?r=overview/view&id=52
     public function actionView($id)
     {
@@ -60,6 +71,7 @@ class OverviewController extends Controller
             'model' => $this->findModel($id),
             'model_images' => $this->findModelImages($id),
             'model_stars' => $this->findModelStars($id),
+            'additionalFieldsMain' => $this->findadditionalFieldsMain($id),
         ]);
     }
 }

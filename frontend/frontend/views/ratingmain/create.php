@@ -19,6 +19,12 @@ $this->params['breadcrumbs'][] = $this->title;
             'model_images' => $model_images,
             'model_stars'  => $model_stars,
             'ratingTypes'  => $ratingTypes,
+
+
+            'allModelRatingTypeConfigFields' => $allModelRatingTypeConfigFields,
+            'dynamic_type_config_model' => $dynamic_type_config_model,
+            'fieldValue' => $fieldValue,
+            'fieldNamePrefix' => $fieldNamePrefix,
         ]); 
 
     ?>

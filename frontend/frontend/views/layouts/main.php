@@ -29,10 +29,11 @@ AppAsset::register($this);
 <div class="wrap">
     <?php
     NavBar::begin([
-        'brandLabel' => Yii::$app->name,
+        'brandLabel' => Yii::$app->name . (stristr(Yii::$app->homeUrl, 'dev') ? ' DEV' : ''),
         'brandUrl' => Yii::$app->homeUrl,
         'options' => [
             'class' => 'navbar-inverse navbar-fixed-top',
+            'style' => (stristr(Yii::$app->homeUrl, 'dev') ? 'background-color: #400080;' : ''),
         ],
     ]);
     $menuItems = [
