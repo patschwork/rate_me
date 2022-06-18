@@ -80,7 +80,12 @@ $this->params['breadcrumbs'][] = $this->title;
                     ;
                 },
             ],
-            'description:html',
+            [
+                'attribute' => 'description',
+                'format' => 'html',
+                'label' => Yii::t('app', 'Description'),
+                'contentOptions' => ['style' => 'width: 50px; white-space: normal;'],
+            ],
             'price',
             'packaging_unit',
             [
