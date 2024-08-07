@@ -58,4 +58,4 @@ This makes it more complex to track your experience.
 ## How to configure
 This is currently only possible via database editor. 
 
-If you are interessted how to do this, please ticket a issue in GitHub
+If you are interessted how to do this, please create a ticket/issue in GitHub
