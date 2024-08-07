@@ -1,1 +1,4 @@
 database_model/liquibase/logs/*.txt
+database_model/liquibase/deploy_config_DEVLINUX_SRV_rollback.ini
+database_model/liquibase/deploy_config_DEVLINUX_SRV.ini
+database_model/liquibase/DEVLINUX_SRV.properties
