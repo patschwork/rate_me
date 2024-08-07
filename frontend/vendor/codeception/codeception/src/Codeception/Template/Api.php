@@ -19,6 +19,8 @@ suites:
                 - REST:
                     url: {{url}}
                     depends: PhpBrowser
+        step_decorators:
+            - \Codeception\Step\AsJson
 
 paths:
     tests: {{baseDir}}
@@ -37,7 +39,7 @@ class ApiCest
 {    
     public function tryApi(ApiTester \$I)
     {
-        \$I->sendGET('/');
+        \$I->sendGet('/');
         \$I->seeResponseCodeIs(200);
         \$I->seeResponseIsJson();
     }

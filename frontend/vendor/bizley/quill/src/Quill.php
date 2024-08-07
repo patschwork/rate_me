@@ -3,11 +3,8 @@
 namespace bizley\quill;
 
 use bizley\quill\assets\HighlightAsset;
-use bizley\quill\assets\HighlightLocalAsset;
 use bizley\quill\assets\KatexAsset;
-use bizley\quill\assets\KatexLocalAsset;
 use bizley\quill\assets\QuillAsset;
-use bizley\quill\assets\QuillLocalAsset;
 use yii\base\InvalidConfigException;
 use yii\helpers\Html;
 use yii\helpers\Json;
@@ -17,20 +14,20 @@ use yii\widgets\InputWidget;
 
 /**
  * Quill editor implementation for Yii 2.
- *
+ * 
  * Use it as an active field:
  * <?= $form->field($model, $attribute)->widget(\bizley\quill\Quill::class, []) ?>
  *
  * Or as a standalone widget:
  * <?= \bizley\quill\Quill::widget(['name' => 'editor']) ?>
- *
+ * 
  * See the documentation for more details.
- *
+ * 
  * @author Paweł Bizley Brzozowski
- * @version 2.6.1
+ * @version 2.4.0
  * @license Apache 2.0
  * https://github.com/bizley/yii2-quill
- *
+ * 
  * Quill itself can be found at
  * https://quilljs.com/
  * https://github.com/quilljs/quill/
@@ -58,7 +55,7 @@ class Quill extends InputWidget
      * Set true to get theme default buttons.
      * You can use above constants for predefined set of buttons.
      * For other options see README and https://quilljs.com/docs/modules/toolbar/
-     * @since 2.0.0
+     * @since 2.0
      */
     public $toolbarOptions = true;
     
@@ -66,7 +63,7 @@ class Quill extends InputWidget
      * @var string Placeholder text to be displayed in the editor field.
      * Leave empty for default value.
      * This property is skipped if $configuration is set.
-     * @since 2.0.0
+     * @since 2.0
      */
     public $placeholder;
     
@@ -75,7 +72,7 @@ class Quill extends InputWidget
      * It will be automatically wrapped in JsExpression.
      * Leave empty for default value.
      * This property is skipped if $configuration is set.
-     * @since 2.0.0
+     * @since 2.0
      */
     public $bounds;
     
@@ -83,7 +80,7 @@ class Quill extends InputWidget
      * @var string Static method enabling logging messages at a given level: 'error', 'warn', 'log', or 'info'.
      * Leave empty for default value (false).
      * This property is skipped if $configuration is set.
-     * @since 2.0.0
+     * @since 2.0
      */
     public $debug;
     
@@ -91,7 +88,7 @@ class Quill extends InputWidget
      * @var array Whitelist of formats to allow in the editor.
      * Leave empty for default list (all allowed).
      * This property is skipped if $configuration is set.
-     * @since 2.0.0
+     * @since 2.0
      */
     public $formats;
     
@@ -99,7 +96,7 @@ class Quill extends InputWidget
      * @var array Collection of modules to include and respective options.
      * This property is skipped if $configuration is set.
      * Notice: if you set 'toolbar' module it will replace $toolbarOptions configuration.
-     * @since 2.0.0
+     * @since 2.0
      */
     public $modules;
     
@@ -107,85 +104,68 @@ class Quill extends InputWidget
      * @var bool Whether to instantiate the editor in read-only mode.
      * Leave empty for default value (false).
      * This property is skipped if $configuration is set.
-     * @since 2.0.0
+     * @since 2.0
      */
     public $readOnly;
     
     /**
      * @var string Additional JS code to be called with the editor.
      * Use placeholder {quill} to get the current editor object variable's name.
-     * @since 1.1.0
+     * @since 1.1
      */
     public $js;
     
     /**
      * @var string Quill version to fetch from https://cdn.quilljs.com
      * Version different from default for this release might not work correctly.
-     * This property is skipped if $localAssets is set to true (Quill is in default version then).
-     * @since 2.0.0
+     * @since 2.0
      */
-    public $quillVersion = '1.3.7';
+    public $quillVersion = '1.3.6';
     
     /**
      * @var array Quill options.
      * Set this to override all other parameters and configure Quill manually.
      * See https://quilljs.com/docs/configuration/ for details.
-     * @since 2.0.0
+     * @since 2.0
      */
     public $configuration;
     
     /**
      * @var string KaTeX version to fetch from https://cdn.jsdelivr.net
      * Used when Formula module is added.
-     * This property is skipped if $localAssets is set to true (KaTeX is in default version then).
-     * @since 2.0.0
+     * @since 2.0
      */
-    public $katexVersion = '0.11.1';
+    public $katexVersion = '0.10.2';
     
     /**
-     * @var string Highlight.js version to fetch from https://cdn.jsdelivr.net
+     * @var string Highlight.js version to fetch from https://cdnjs.cloudflare.com
      * Used when Syntax module is added.
-     * This property is skipped if $localAssets is set to true (Highlight.js is in default version then).
-     * @since 2.0.0
+     * @since 2.0
      */
-    public $highlightVersion = '9.17.1';
+    public $highlightVersion = '9.15.8';
     
     /**
-     * @var string Highlight.js stylesheet to fetch from https://cdn.jsdelivr.net
+     * @var string Highlight.js stylesheet to fetch from https://cdnjs.cloudflare.com
      * See https://github.com/isagalaev/highlight.js/tree/master/src/styles
      * Used when Syntax module is added.
-     * This property is skipped if $localAssets is set to true (Highlight.js is using default style then).
-     * @since 2.0.0
+     * @since 2.0
      */
     public $highlightStyle = 'default.min.css';
     
     /**
-     * @var array HTML attributes for the input tag (editor box).
+     * @var array HTML attributes for the input tag.
      * @see Html::renderTagAttributes() for details on how attributes are being rendered.
      */
     public $options = ['style' => 'min-height:150px;'];
-
-    /**
-     * @var array HTML attributes for the hidden input tag (field keeping raw HTML text).
-     * @see Html::renderTagAttributes() for details on how attributes are being rendered.
-     * @since 2.5.0
-     */
-    public $hiddenOptions = [];
     
     /**
      * @var string HTML tag for the editor.
-     * @since 2.0.0
+     * @since 2.0
      */
     public $tag = 'div';
 
     /**
-     * @var bool Whether to use local versions of assets instead of CDNs.
-     * @since 2.6.0
-     */
-    public $localAssets = false;
-
-    /**
-     * {@inheritdoc}
+     * @inheritdoc
      */
     public static $autoIdPrefix = 'quill-';
     
@@ -196,12 +176,12 @@ class Quill extends InputWidget
     
     /**
      * @var array
-     * @since 2.0.0
+     * @since 2.0
      */
     protected $_quillConfiguration = [];
 
     /**
-     * {@inheritdoc}
+     * @inheritdoc
      * @throws InvalidConfigException
      */
     public function init()
@@ -233,14 +213,8 @@ class Quill extends InputWidget
         
         $this->prepareOptions();
     }
-
-    /**
-     * @var bool
-     */
+    
     private $_katex = false;
-    /**
-     * @var bool
-     */
     private $_highlight = false;
     
     /**
@@ -262,6 +236,7 @@ class Quill extends InputWidget
             }
 
             $this->_quillConfiguration = $this->configuration;
+
         } else {
             if (!empty($this->theme)) {
                 $this->_quillConfiguration['theme'] = $this->theme;
@@ -281,10 +256,6 @@ class Quill extends InputWidget
 
             if (!empty($this->formats)) {
                 $this->_quillConfiguration['formats'] = $this->formats;
-            }
-
-            if ($this->readOnly !== null && (bool)$this->readOnly) {
-                $this->_quillConfiguration['readOnly'] = true;
             }
             
             if (!empty($this->modules)) {
@@ -308,21 +279,25 @@ class Quill extends InputWidget
     }
     
     /**
-     * {@inheritdoc}
+     * @inheritdoc
      */
     public function run()
     {
         $this->registerClientScript();
 
-        $hiddenOptions = \array_merge($this->hiddenOptions, ['id' => $this->_fieldId]);
-
         if ($this->hasModel()) {
-            return Html::activeHiddenInput($this->model, $this->attribute, $hiddenOptions)
-                . Html::tag($this->tag, $this->model->{$this->attribute}, $this->options);
+            return Html::activeHiddenInput(
+                    $this->model, $this->attribute, ['id' => $this->_fieldId]
+                ) . Html::tag(
+                    $this->tag, $this->model->{$this->attribute}, $this->options
+                );
         }
 
-        return Html::hiddenInput($this->name, $this->value, $hiddenOptions)
-            . Html::tag($this->tag, $this->value, $this->options);
+        return Html::hiddenInput(
+                $this->name, $this->value, ['id' => $this->_fieldId]
+            ) . Html::tag(
+                $this->tag, $this->value, $this->options
+            );
     }
     
     /**
@@ -334,40 +309,29 @@ class Quill extends InputWidget
         $view = $this->view;
         
         if ($this->_katex) {
-            if ($this->localAssets) {
-                KatexLocalAsset::register($view);
-            } else {
-                $katexAsset = KatexAsset::register($view);
-                $katexAsset->version = $this->katexVersion;
-            }
+            $katexAsset = KatexAsset::register($view);
+            $katexAsset->version = $this->katexVersion;
         }
 
         if ($this->_highlight) {
-            if ($this->localAssets) {
-                HighlightLocalAsset::register($view);
-            } else {
-                $highlightAsset = HighlightAsset::register($view);
-                $highlightAsset->version = $this->highlightVersion;
-                $highlightAsset->style = $this->highlightStyle;
-            }
+            $highlightAsset = HighlightAsset::register($view);
+            $highlightAsset->version = $this->highlightVersion;
+            $highlightAsset->style = $this->highlightStyle;
         }
-
-        if ($this->localAssets) {
-            $asset = QuillLocalAsset::register($view);
-        } else {
-            $asset = QuillAsset::register($view);
-            $asset->version = $this->quillVersion;
-        }
+        
+        $asset = QuillAsset::register($view);
         $asset->theme = $this->theme;
+        $asset->version = $this->quillVersion;
         
         $configs = Json::encode($this->_quillConfiguration);
-        $editor = 'q_' . \preg_replace('~[^0-9_\p{L}]~u', '_', $this->id);
+        $editor = 'q_' . preg_replace('~[^0-9_\p{L}]~u', '_', $this->id);
         
         $js = "var $editor=new Quill(\"#editor-{$this->id}\",$configs);";
+        $js .= "document.getElementById(\"editor-{$this->id}\").onclick=function(e){document.querySelector(\"#editor-{$this->id} .ql-editor\").focus();};";
         $js .= "$editor.on('text-change',function(){document.getElementById(\"{$this->_fieldId}\").value=$editor.root.innerHTML;});";
 
         if (!empty($this->js)) {
-            $js .= \str_replace('{quill}', $editor, $this->js);
+            $js .= str_replace('{quill}', $editor, $this->js);
         }
 
         $view->registerJs($js, View::POS_END);

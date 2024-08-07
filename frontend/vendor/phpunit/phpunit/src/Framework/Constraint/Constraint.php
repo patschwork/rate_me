@@ -9,11 +9,13 @@
  */
 namespace PHPUnit\Framework\Constraint;
 
+use function sprintf;
 use Countable;
 use PHPUnit\Framework\ExpectationFailedException;
 use PHPUnit\Framework\SelfDescribing;
 use SebastianBergmann\Comparator\ComparisonFailure;
 use SebastianBergmann\Exporter\Exporter;
+use SebastianBergmann\RecursionContext\InvalidArgumentException;
 
 /**
  * Abstract base class for constraints which can be applied to any value.
@@ -26,7 +28,7 @@ abstract class Constraint implements Countable, SelfDescribing
     private $exporter;
 
     /**
-     * Evaluates the constraint for parameter $other
+     * Evaluates the constraint for parameter $other.
      *
      * If $returnResult is set to false (the default), an exception is thrown
      * in case of a failure. null is returned otherwise.
@@ -36,7 +38,7 @@ abstract class Constraint implements Countable, SelfDescribing
      * failure.
      *
      * @throws ExpectationFailedException
-     * @throws \SebastianBergmann\RecursionContext\InvalidArgumentException
+     * @throws InvalidArgumentException
      */
     public function evaluate($other, string $description = '', bool $returnResult = false)
     {
@@ -79,6 +81,7 @@ abstract class Constraint implements Countable, SelfDescribing
      * This method can be overridden to implement the evaluation algorithm.
      *
      * @param mixed $other value or object to evaluate
+     *
      * @codeCoverageIgnore
      */
     protected function matches($other): bool
@@ -87,18 +90,19 @@ abstract class Constraint implements Countable, SelfDescribing
     }
 
     /**
-     * Throws an exception for the given compared value and test description
+     * Throws an exception for the given compared value and test description.
      *
-     * @param mixed             $other             evaluated value or object
-     * @param string            $description       Additional information about the test
-     * @param ComparisonFailure $comparisonFailure
+     * @param mixed  $other       evaluated value or object
+     * @param string $description Additional information about the test
      *
      * @throws ExpectationFailedException
-     * @throws \SebastianBergmann\RecursionContext\InvalidArgumentException
+     * @throws InvalidArgumentException
+     *
+     * @psalm-return never-return
      */
-    protected function fail($other, $description, ComparisonFailure $comparisonFailure = null): void
+    protected function fail($other, $description, ?ComparisonFailure $comparisonFailure = null): void
     {
-        $failureDescription = \sprintf(
+        $failureDescription = sprintf(
             'Failed asserting that %s.',
             $this->failureDescription($other)
         );
@@ -120,7 +124,7 @@ abstract class Constraint implements Countable, SelfDescribing
     }
 
     /**
-     * Return additional failure description where needed
+     * Return additional failure description where needed.
      *
      * The function can be overridden to provide additional failure
      * information like a diff
@@ -133,7 +137,7 @@ abstract class Constraint implements Countable, SelfDescribing
     }
 
     /**
-     * Returns the description of the failure
+     * Returns the description of the failure.
      *
      * The beginning of failure messages is "Failed asserting that" in most
      * cases. This method should return the second part of that sentence.
@@ -143,7 +147,7 @@ abstract class Constraint implements Countable, SelfDescribing
      *
      * @param mixed $other evaluated value or object
      *
-     * @throws \SebastianBergmann\RecursionContext\InvalidArgumentException
+     * @throws InvalidArgumentException
      */
     protected function failureDescription($other): string
     {

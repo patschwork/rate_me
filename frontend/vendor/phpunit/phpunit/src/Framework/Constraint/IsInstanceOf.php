@@ -9,6 +9,11 @@
  */
 namespace PHPUnit\Framework\Constraint;
 
+use function sprintf;
+use ReflectionClass;
+use ReflectionException;
+use SebastianBergmann\RecursionContext\InvalidArgumentException;
+
 /**
  * Constraint that asserts that the object it is evaluated for is an instance
  * of a given class.
@@ -32,7 +37,7 @@ final class IsInstanceOf extends Constraint
      */
     public function toString(): string
     {
-        return \sprintf(
+        return sprintf(
             'is instance of %s "%s"',
             $this->getType(),
             $this->className
@@ -51,18 +56,18 @@ final class IsInstanceOf extends Constraint
     }
 
     /**
-     * Returns the description of the failure
+     * Returns the description of the failure.
      *
      * The beginning of failure messages is "Failed asserting that" in most
      * cases. This method should return the second part of that sentence.
      *
      * @param mixed $other evaluated value or object
      *
-     * @throws \SebastianBergmann\RecursionContext\InvalidArgumentException
+     * @throws InvalidArgumentException
      */
     protected function failureDescription($other): string
     {
-        return \sprintf(
+        return sprintf(
             '%s is an instance of %s "%s"',
             $this->exporter()->shortenedExport($other),
             $this->getType(),
@@ -73,12 +78,12 @@ final class IsInstanceOf extends Constraint
     private function getType(): string
     {
         try {
-            $reflection = new \ReflectionClass($this->className);
+            $reflection = new ReflectionClass($this->className);
 
             if ($reflection->isInterface()) {
                 return 'interface';
             }
-        } catch (\ReflectionException $e) {
+        } catch (ReflectionException $e) {
         }
 
         return 'class';

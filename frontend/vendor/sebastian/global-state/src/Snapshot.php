@@ -80,7 +80,7 @@ class Snapshot
     /**
      * Creates a snapshot of the current global state.
      */
-    public function __construct(Blacklist $blacklist = null, bool $includeGlobalVariables = true, bool $includeStaticAttributes = true, bool $includeConstants = true, bool $includeFunctions = true, bool $includeClasses = true, bool $includeInterfaces = true, bool $includeTraits = true, bool $includeIniSettings = true, bool $includeIncludedFiles = true)
+    public function __construct(?Blacklist $blacklist = null, bool $includeGlobalVariables = true, bool $includeStaticAttributes = true, bool $includeConstants = true, bool $includeFunctions = true, bool $includeClasses = true, bool $includeInterfaces = true, bool $includeTraits = true, bool $includeIniSettings = true, bool $includeIncludedFiles = true)
     {
         if ($blacklist === null) {
             $blacklist = new Blacklist;
@@ -121,7 +121,9 @@ class Snapshot
             $this->includedFiles = \get_included_files();
         }
 
-        $this->traits = \get_declared_traits();
+        if ($includeTraits) {
+            $this->traits = \get_declared_traits();
+        }
     }
 
     public function blacklist(): Blacklist

@@ -9,7 +9,10 @@
  */
 namespace PHPUnit\Framework\Constraint;
 
+use function array_values;
+use function count;
 use PHPUnit\Framework\ExpectationFailedException;
+use SebastianBergmann\RecursionContext\InvalidArgumentException;
 
 /**
  * Logical XOR.
@@ -25,7 +28,7 @@ final class LogicalXor extends Constraint
     {
         $constraint = new self;
 
-        $constraint->constraints = \array_values($constraints);
+        $constraint->constraints = array_values($constraints);
 
         return $constraint;
     }
@@ -49,7 +52,7 @@ final class LogicalXor extends Constraint
     }
 
     /**
-     * Evaluates the constraint for parameter $other
+     * Evaluates the constraint for parameter $other.
      *
      * If $returnResult is set to false (the default), an exception is thrown
      * in case of a failure. null is returned otherwise.
@@ -59,7 +62,7 @@ final class LogicalXor extends Constraint
      * failure.
      *
      * @throws ExpectationFailedException
-     * @throws \SebastianBergmann\RecursionContext\InvalidArgumentException
+     * @throws InvalidArgumentException
      */
     public function evaluate($other, string $description = '', bool $returnResult = false)
     {
@@ -113,7 +116,7 @@ final class LogicalXor extends Constraint
         $count = 0;
 
         foreach ($this->constraints as $constraint) {
-            $count += \count($constraint);
+            $count += count($constraint);
         }
 
         return $count;

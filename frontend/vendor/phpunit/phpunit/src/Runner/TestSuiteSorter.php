@@ -9,11 +9,26 @@
  */
 namespace PHPUnit\Runner;
 
+use function array_intersect;
+use function array_map;
+use function array_merge;
+use function array_reduce;
+use function array_reverse;
+use function array_splice;
+use function count;
+use function get_class;
+use function in_array;
+use function max;
+use function shuffle;
+use function strpos;
+use function substr;
+use function usort;
 use PHPUnit\Framework\DataProviderTestSuite;
 use PHPUnit\Framework\Test;
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\TestSuite;
 use PHPUnit\Util\Test as TestUtil;
+use SebastianBergmann\RecursionContext\InvalidArgumentException;
 
 /**
  * @internal This class is not covered by the backward compatibility promise for PHPUnit
@@ -46,7 +61,7 @@ final class TestSuiteSorter
     public const ORDER_DURATION = 4;
 
     /**
-     * Order tests by @size annotation 'small', 'medium', 'large'
+     * Order tests by @size annotation 'small', 'medium', 'large'.
      *
      * @var int
      */
@@ -93,7 +108,7 @@ final class TestSuiteSorter
     private $executionOrder = [];
 
     /**
-     * @throws \SebastianBergmann\RecursionContext\InvalidArgumentException
+     * @throws InvalidArgumentException
      */
     public static function getTestSorterUID(Test $test): string
     {
@@ -104,8 +119,8 @@ final class TestSuiteSorter
         if ($test instanceof TestCase) {
             $testName = $test->getName(true);
 
-            if (\strpos($testName, '::') === false) {
-                $testName = \get_class($test) . '::' . $testName;
+            if (strpos($testName, '::') === false) {
+                $testName = get_class($test) . '::' . $testName;
             }
 
             return $testName;
@@ -121,7 +136,7 @@ final class TestSuiteSorter
 
     /**
      * @throws Exception
-     * @throws \SebastianBergmann\RecursionContext\InvalidArgumentException
+     * @throws InvalidArgumentException
      */
     public function reorderTestsInSuite(Test $suite, int $order, bool $resolveDependencies, int $orderDefects, bool $isRootTestSuite = true): void
     {
@@ -133,7 +148,7 @@ final class TestSuiteSorter
             self::ORDER_SIZE,
         ];
 
-        if (!\in_array($order, $allowedOrders, true)) {
+        if (!in_array($order, $allowedOrders, true)) {
             throw new Exception(
                 '$order must be one of TestSuiteSorter::ORDER_[DEFAULT|REVERSED|RANDOMIZED|DURATION|SIZE]'
             );
@@ -144,7 +159,7 @@ final class TestSuiteSorter
             self::ORDER_DEFECTS_FIRST,
         ];
 
-        if (!\in_array($orderDefects, $allowedOrderDefects, true)) {
+        if (!in_array($orderDefects, $allowedOrderDefects, true)) {
             throw new Exception(
                 '$orderDefects must be one of TestSuiteSorter::ORDER_DEFAULT, TestSuiteSorter::ORDER_DEFECTS_FIRST'
             );
@@ -210,7 +225,7 @@ final class TestSuiteSorter
     }
 
     /**
-     * @throws \SebastianBergmann\RecursionContext\InvalidArgumentException
+     * @throws InvalidArgumentException
      */
     private function addSuiteToDefectSortOrder(TestSuite $suite): void
     {
@@ -220,8 +235,8 @@ final class TestSuiteSorter
             $testname = self::getTestSorterUID($test);
 
             if (!isset($this->defectSortOrder[$testname])) {
-                $this->defectSortOrder[$testname]        = self::DEFECT_SORT_WEIGHT[$this->cache->getState($testname)];
-                $max                                     = \max($max, $this->defectSortOrder[$testname]);
+                $this->defectSortOrder[$testname] = self::DEFECT_SORT_WEIGHT[$this->cache->getState($testname)];
+                $max                              = max($max, $this->defectSortOrder[$testname]);
             }
         }
 
@@ -230,9 +245,10 @@ final class TestSuiteSorter
 
     private function suiteOnlyContainsTests(TestSuite $suite): bool
     {
-        return \array_reduce(
+        return array_reduce(
             $suite->tests(),
-            static function ($carry, $test) {
+            static function ($carry, $test)
+            {
                 return $carry && ($test instanceof TestCase || $test instanceof DataProviderTestSuite);
             },
             true
@@ -241,24 +257,25 @@ final class TestSuiteSorter
 
     private function reverse(array $tests): array
     {
-        return \array_reverse($tests);
+        return array_reverse($tests);
     }
 
     private function randomize(array $tests): array
     {
-        \shuffle($tests);
+        shuffle($tests);
 
         return $tests;
     }
 
     private function sortDefectsFirst(array $tests): array
     {
-        \usort(
+        usort(
             $tests,
             /**
-             * @throws \SebastianBergmann\RecursionContext\InvalidArgumentException
+             * @throws InvalidArgumentException
              */
-            function ($left, $right) {
+            function ($left, $right)
+            {
                 return $this->cmpDefectPriorityAndTime($left, $right);
             }
         );
@@ -268,12 +285,13 @@ final class TestSuiteSorter
 
     private function sortByDuration(array $tests): array
     {
-        \usort(
+        usort(
             $tests,
             /**
-             * @throws \SebastianBergmann\RecursionContext\InvalidArgumentException
+             * @throws InvalidArgumentException
              */
-            function ($left, $right) {
+            function ($left, $right)
+            {
                 return $this->cmpDuration($left, $right);
             }
         );
@@ -283,12 +301,13 @@ final class TestSuiteSorter
 
     private function sortBySize(array $tests): array
     {
-        \usort(
+        usort(
             $tests,
             /**
-             * @throws \SebastianBergmann\RecursionContext\InvalidArgumentException
+             * @throws InvalidArgumentException
              */
-            function ($left, $right) {
+            function ($left, $right)
+            {
                 return $this->cmpSize($left, $right);
             }
         );
@@ -300,9 +319,9 @@ final class TestSuiteSorter
      * Comparator callback function to sort tests for "reach failure as fast as possible":
      * 1. sort tests by defect weight defined in self::DEFECT_SORT_WEIGHT
      * 2. when tests are equally defective, sort the fastest to the front
-     * 3. do not reorder successful tests
+     * 3. do not reorder successful tests.
      *
-     * @throws \SebastianBergmann\RecursionContext\InvalidArgumentException
+     * @throws InvalidArgumentException
      */
     private function cmpDefectPriorityAndTime(Test $a, Test $b): int
     {
@@ -325,7 +344,7 @@ final class TestSuiteSorter
     /**
      * Compares test duration for sorting tests by duration ascending.
      *
-     * @throws \SebastianBergmann\RecursionContext\InvalidArgumentException
+     * @throws InvalidArgumentException
      */
     private function cmpDuration(Test $a, Test $b): int
     {
@@ -333,7 +352,7 @@ final class TestSuiteSorter
     }
 
     /**
-     * Compares test size for sorting tests small->medium->large->unknown
+     * Compares test size for sorting tests small->medium->large->unknown.
      */
     private function cmpSize(Test $a, Test $b): int
     {
@@ -368,25 +387,26 @@ final class TestSuiteSorter
         $i            = 0;
 
         do {
-            $todoNames = \array_map(
+            $todoNames = array_map(
                 /**
-                 * @throws \SebastianBergmann\RecursionContext\InvalidArgumentException
+                 * @throws InvalidArgumentException
                  */
-                static function ($test) {
+                static function ($test)
+                {
                     return self::getTestSorterUID($test);
                 },
                 $tests
             );
 
-            if (!$tests[$i]->hasDependencies() || empty(\array_intersect($this->getNormalizedDependencyNames($tests[$i]), $todoNames))) {
-                $newTestOrder = \array_merge($newTestOrder, \array_splice($tests, $i, 1));
+            if (!$tests[$i]->hasDependencies() || empty(array_intersect($this->getNormalizedDependencyNames($tests[$i]), $todoNames))) {
+                $newTestOrder = array_merge($newTestOrder, array_splice($tests, $i, 1));
                 $i            = 0;
             } else {
                 $i++;
             }
-        } while (!empty($tests) && ($i < \count($tests)));
+        } while (!empty($tests) && ($i < count($tests)));
 
-        return \array_merge($newTestOrder, $tests);
+        return array_merge($newTestOrder, $tests);
     }
 
     /**
@@ -397,23 +417,22 @@ final class TestSuiteSorter
     private function getNormalizedDependencyNames($test): array
     {
         if ($test instanceof DataProviderTestSuite) {
-            $testClass = \substr($test->getName(), 0, \strpos($test->getName(), '::'));
+            $testClass = substr($test->getName(), 0, strpos($test->getName(), '::'));
         } else {
-            $testClass = \get_class($test);
+            $testClass = get_class($test);
         }
 
-        $names = \array_map(
-            static function ($name) use ($testClass) {
-                return \strpos($name, '::') === false ? $testClass . '::' . $name : $name;
+        return array_map(
+            static function ($name) use ($testClass)
+            {
+                return strpos($name, '::') === false ? $testClass . '::' . $name : $name;
             },
             $test->getDependencies()
         );
-
-        return $names;
     }
 
     /**
-     * @throws \SebastianBergmann\RecursionContext\InvalidArgumentException
+     * @throws InvalidArgumentException
      */
     private function calculateTestExecutionOrder(Test $suite): array
     {
@@ -424,7 +443,7 @@ final class TestSuiteSorter
                 if (!($test instanceof TestSuite)) {
                     $tests[] = self::getTestSorterUID($test);
                 } else {
-                    $tests = \array_merge($tests, $this->calculateTestExecutionOrder($test));
+                    $tests = array_merge($tests, $this->calculateTestExecutionOrder($test));
                 }
             }
         }

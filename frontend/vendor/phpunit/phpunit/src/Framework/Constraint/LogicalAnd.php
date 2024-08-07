@@ -9,7 +9,11 @@
  */
 namespace PHPUnit\Framework\Constraint;
 
+use function array_values;
+use function count;
+use PHPUnit\Framework\Exception;
 use PHPUnit\Framework\ExpectationFailedException;
+use SebastianBergmann\RecursionContext\InvalidArgumentException;
 
 /**
  * Logical AND.
@@ -25,7 +29,7 @@ final class LogicalAnd extends Constraint
     {
         $constraint = new self;
 
-        $constraint->constraints = \array_values($constraints);
+        $constraint->constraints = array_values($constraints);
 
         return $constraint;
     }
@@ -33,7 +37,7 @@ final class LogicalAnd extends Constraint
     /**
      * @param Constraint[] $constraints
      *
-     * @throws \PHPUnit\Framework\Exception
+     * @throws Exception
      */
     public function setConstraints(array $constraints): void
     {
@@ -41,7 +45,7 @@ final class LogicalAnd extends Constraint
 
         foreach ($constraints as $constraint) {
             if (!($constraint instanceof Constraint)) {
-                throw new \PHPUnit\Framework\Exception(
+                throw new Exception(
                     'All parameters to ' . __CLASS__ .
                     ' must be a constraint object.'
                 );
@@ -52,7 +56,7 @@ final class LogicalAnd extends Constraint
     }
 
     /**
-     * Evaluates the constraint for parameter $other
+     * Evaluates the constraint for parameter $other.
      *
      * If $returnResult is set to false (the default), an exception is thrown
      * in case of a failure. null is returned otherwise.
@@ -62,7 +66,7 @@ final class LogicalAnd extends Constraint
      * failure.
      *
      * @throws ExpectationFailedException
-     * @throws \SebastianBergmann\RecursionContext\InvalidArgumentException
+     * @throws InvalidArgumentException
      */
     public function evaluate($other, string $description = '', bool $returnResult = false)
     {
@@ -111,7 +115,7 @@ final class LogicalAnd extends Constraint
         $count = 0;
 
         foreach ($this->constraints as $constraint) {
-            $count += \count($constraint);
+            $count += count($constraint);
         }
 
         return $count;

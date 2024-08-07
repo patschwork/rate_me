@@ -3,7 +3,7 @@ namespace Codeception\Command;
 
 use Codeception\Codecept;
 use Codeception\Configuration;
-use Codeception\Util\PathResolver;
+use Codeception\Exception\ParseException;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -16,8 +16,8 @@ use Symfony\Component\Console\Output\OutputInterface;
  * Usage:
  *
  * * `codecept run acceptance`: run all acceptance tests
- * * `codecept run tests/acceptance/MyCept.php`: run only MyCept
- * * `codecept run acceptance MyCept`: same as above
+ * * `codecept run tests/acceptance/MyCest.php`: run only MyCest
+ * * `codecept run acceptance MyCest`: same as above
  * * `codecept run acceptance MyCest:myTestInIt`: run one test from a Cest
  * * `codecept run acceptance checkout.feature`: run feature-file
  * * `codecept run acceptance -g slow`: run tests from *slow* group
@@ -27,9 +27,9 @@ use Symfony\Component\Console\Output\OutputInterface;
  *
  * * `codecept run -v`:
  * * `codecept run --steps`: print step-by-step execution
- * * `codecept run -vv`:
- * * `codecept run --debug`: print steps and debug information
- * * `codecept run -vvv`: print internal debug information
+ * * `codecept run -vv`: print steps and debug information
+ * * `codecept run --debug`: alias for `-vv`
+ * * `codecept run -vvv`: print Codeception-internal debug information
  *
  * Load config:
  *
@@ -66,15 +66,16 @@ use Symfony\Component\Console\Output\OutputInterface;
  *  --json                Generate Json Log (default: "report.json")
  *  --colors              Use colors in output
  *  --no-colors           Force no colors in output (useful to override config file)
- *  --silent              Only outputs suite names and final results
+ *  --silent              Only outputs suite names and final results. Almost the same as `--quiet`
  *  --steps               Show steps in output
- *  --debug (-d)          Show debug and scenario output
+ *  --debug (-d)          Alias for `-vv`
  *  --bootstrap           Execute bootstrap script before the test
  *  --coverage            Run with code coverage (default: "coverage.serialized")
  *  --coverage-html       Generate CodeCoverage HTML report in path (default: "coverage")
  *  --coverage-xml        Generate CodeCoverage XML report in file (default: "coverage.xml")
  *  --coverage-text       Generate CodeCoverage text report in file (default: "coverage.txt")
  *  --coverage-phpunit    Generate CodeCoverage PHPUnit report in file (default: "coverage-phpunit")
+ *  --coverage-cobertura  Generate CodeCoverage Cobertura report in file (default: "coverage-cobertura")
  *  --no-exit             Don't finish with exit code
  *  --group (-g)          Groups of tests to be executed (multiple values allowed)
  *  --skip (-s)           Skip selected suites (multiple values allowed)
@@ -83,8 +84,8 @@ use Symfony\Component\Console\Output\OutputInterface;
  *  --fail-fast (-f)      Stop after first failure
  *  --no-rebuild          Do not rebuild actor classes on start
  *  --help (-h)           Display this help message.
- *  --quiet (-q)          Do not output any message.
- *  --verbose (-v|vv|vvv) Increase the verbosity of messages: 1 for normal output, 2 for more verbose output and 3 for debug
+ *  --quiet (-q)          Do not output any message. Almost the same as `--silent`
+ *  --verbose (-v|vv|vvv) Increase the verbosity of messages: `v` for normal output, `vv` for steps and debug, `vvv` for Codeception-internal debug
  *  --version (-V)        Display this application version.
  *  --ansi                Force ANSI output.
  *  --no-ansi             Disable ANSI output.
@@ -115,7 +116,6 @@ class Run extends Command
      * @var OutputInterface
      */
     protected $output;
-
 
     /**
      * Sets Run arguments
@@ -175,6 +175,12 @@ class Run extends Command
                 '',
                 InputOption::VALUE_OPTIONAL,
                 'Generate CodeCoverage report in Crap4J XML format'
+            ),
+            new InputOption(
+                'coverage-cobertura',
+                '',
+                InputOption::VALUE_OPTIONAL,
+                'Generate CodeCoverage report in Cobertura XML format'
             ),
             new InputOption(
                 'coverage-phpunit',
@@ -244,29 +250,25 @@ class Run extends Command
         if ($this->options['bootstrap']) {
             Configuration::loadBootstrap($this->options['bootstrap'], getcwd());
         }
-
-        // load config
+        
         $config = $this->getGlobalConfig();
-
-        // update config from options
-        if (count($this->options['override'])) {
-            $config = $this->overrideConfig($this->options['override']);
-        }
-        if ($this->options['ext']) {
-            $config = $this->enableExtensions($this->options['ext']);
-        }
-
+        $config = $this->addRuntimeOptionsToCurrentConfig($config);
+        
         if (!$this->options['colors']) {
             $this->options['colors'] = $config['settings']['colors'];
         }
 
         if (!$this->options['silent']) {
             $this->output->writeln(
-                Codecept::versionString() . "\nPowered by " . \PHPUnit\Runner\Version::getVersionString()
+                Codecept::versionString() . " https://helpukrainewin.org\nPowered by "
+                . \PHPUnit\Runner\Version::getVersionString()
             );
-            $this->output->writeln(
-                "Running with seed: " . $this->options['seed'] . "\n"
-            );
+
+            if ($this->options['seed']) {
+                $this->output->writeln(
+                    "Running with seed: <info>" . $this->options['seed'] . "</info>\n"
+                );
+            }
         }
         if ($this->options['debug']) {
             $this->output->setVerbosity(OutputInterface::VERBOSITY_VERY_VERBOSE);
@@ -286,6 +288,7 @@ class Run extends Command
                 'coverage-html' => 'coverage',
                 'coverage-text' => 'coverage.txt',
                 'coverage-crap4j' => 'crap4j.xml',
+                'coverage-cobertura' => 'cobertura.xml',
                 'coverage-phpunit' => 'coverage-phpunit'])
         );
         $userOptions['verbosity'] = $this->output->getVerbosity();
@@ -338,7 +341,8 @@ class Run extends Command
                     if (strpos($suite, $include) === 0) {
                         // Use include config
                         $config = Configuration::config($projectDir.$include);
-
+                        $config = $this->addRuntimeOptionsToCurrentConfig($config);
+                        
                         if (!isset($config['paths']['tests'])) {
                             throw new \RuntimeException(
                                 sprintf("Included '%s' has no tests path configured", $include)
@@ -364,7 +368,9 @@ class Run extends Command
 
                 // Restore main config
                 if (!$isIncludeTest) {
-                    $config = Configuration::config($projectDir);
+                    $config = $this->addRuntimeOptionsToCurrentConfig(
+                        Configuration::config($projectDir)
+                    );
                 }
             } elseif (!empty($suite)) {
                 $result = $this->matchSingleTest($suite, $config);
@@ -375,10 +381,14 @@ class Run extends Command
         }
 
         if ($test) {
-            $filter = $this->matchFilteredTestName($test);
-            $userOptions['filter'] = $filter;
+            $userOptions['filter'] = $this->matchFilteredTestName($test);
+        } elseif (
+            $suite
+            && ! $this->isWildcardSuiteName($suite)
+            && ! $this->isSuiteInMultiApplication($suite)
+        ) {
+            $userOptions['filter'] = $this->matchFilteredTestName($suite);
         }
-
         if (!$this->options['silent'] && $config['settings']['shuffle']) {
             $this->output->writeln(
                 "[Seed] <info>" . $userOptions['seed'] . "</info>"
@@ -393,18 +403,66 @@ class Run extends Command
 
         // Run all tests of given suite or all suites
         if (!$test) {
-            $suites = $suite ? explode(',', $suite) : Configuration::suites();
-            $this->executed = $this->runSuites($suites, $this->options['skip']);
-
-            if (!empty($config['include']) and !$suite) {
-                $current_dir = Configuration::projectDir();
-                $suites += $config['include'];
-                $this->runIncludedSuites($config['include'], $current_dir);
+            
+            $didPassCliSuite = !empty($suite);
+            
+            $rawSuites = $didPassCliSuite ? explode(',', $suite) : Configuration::suites();
+            
+            /** @var string[] $mainAppSuites */
+            $mainAppSuites = [];
+            
+            /** @var array<string,string> $appSpecificSuites */
+            $appSpecificSuites = [];
+            
+            /** @var string[] $wildcardSuites */
+            $wildcardSuites = [];
+            
+            foreach ($rawSuites as $rawSuite) {
+                if($this->isWildcardSuiteName($rawSuite)){
+                    $wildcardSuites[] = explode('*::', $rawSuite)[1];
+                    continue;
+                }
+                if($this->isSuiteInMultiApplication($rawSuite)){
+                    $appAndSuite = explode('::', $rawSuite);
+                    $appSpecificSuites[$appAndSuite[0]][] = $appAndSuite[1];
+                    continue;
+                }
+                $mainAppSuites[] = $rawSuite;
             }
-
+            
+            if([] !== $mainAppSuites) {
+                $this->executed = $this->runSuites($mainAppSuites, $this->options['skip']);
+            }
+            
+            if(!empty($wildcardSuites) && ! empty($appSpecificSuites)) {
+                $this->output->writeLn('<error>Wildcard options can not be combined with specific suites of included apps.</error>');
+                return 2;
+            }
+            
+            if(
+                !empty($config['include'])
+                && (!$didPassCliSuite || !empty($wildcardSuites) || !empty($appSpecificSuites))
+            ) {
+                
+                $currentDir = Configuration::projectDir();
+                $includedApps = $config['include'];
+                
+                if(!empty($appSpecificSuites)){
+                    $includedApps = array_intersect($includedApps, array_keys($appSpecificSuites));
+                }
+                
+                $this->runIncludedSuites(
+                    $includedApps,
+                    $currentDir,
+                    $appSpecificSuites,
+                    $wildcardSuites
+                );
+                
+            }
+    
             if ($this->executed === 0) {
                 throw new \RuntimeException(
-                    sprintf("Suite '%s' could not be found", implode(', ', $suites))
+                    sprintf("Suite '%s' could not be found", implode(', ', $rawSuites))
                 );
             }
         }
@@ -445,9 +503,29 @@ class Run extends Command
             }
         }
 
-        // Run single test without included tests
-        if (! Configuration::isEmpty() && strpos($suite, $config['paths']['tests']) === 0) {
-            return $this->matchTestFromFilename($suite, $config['paths']['tests']);
+        if (! Configuration::isEmpty()) {
+            // Run single test without included tests
+            if (strpos($suite, $config['paths']['tests']) === 0) {
+                return $this->matchTestFromFilename($suite, $config['paths']['tests']);
+            }
+
+            // Run single test from working directory
+            $realTestDir = realpath(Configuration::testsDir());
+            $cwd = getcwd();
+            if (strpos($realTestDir, $cwd) === 0) {
+                $file = $suite;
+                if (strpos($file, ':') !== false) {
+                    list($file) = explode(':', $suite, -1);
+                }
+                $realPath = $cwd . DIRECTORY_SEPARATOR . $file;
+                if (file_exists($realPath) && strpos($realPath, $realTestDir) === 0) {
+                    //only match test if file is in tests directory
+                    return $this->matchTestFromFilename(
+                        $cwd . DIRECTORY_SEPARATOR . $suite,
+                        $realTestDir
+                    );
+                }
+            }
         }
     }
 
@@ -456,14 +534,35 @@ class Run extends Command
      *
      * @param array $suites
      * @param string $parent_dir
+     * @param array<string,string[]> $filterAppSuites An array keyed by included app name where values are suite names to run.
+     * @param string[] $filterSuitesByWildcard A list of suite names (applies to all included apps)
      */
-    protected function runIncludedSuites($suites, $parent_dir)
+    protected function runIncludedSuites($suites, $parent_dir, $filterAppSuites = [], $filterSuitesByWildcard = [])
     {
+        $defaultConfig = Configuration::config();
+        $absolutePath = \Codeception\Configuration::projectDir();
+
         foreach ($suites as $relativePath) {
             $current_dir = rtrim($parent_dir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $relativePath;
             $config = Configuration::config($current_dir);
-            $suites = Configuration::suites();
 
+            if ( !empty($defaultConfig['groups'])) {
+                $groups = array_map(function($g) use ($absolutePath) {
+                    return $absolutePath . $g;
+                }, $defaultConfig['groups']);
+                Configuration::append(['groups' => $groups]);
+            }
+
+            $suites = Configuration::suites();
+            
+            if( !empty($filterSuitesByWildcard)){
+                $suites = array_intersect($suites, $filterSuitesByWildcard);
+            }
+            
+            if( isset($filterAppSuites[$relativePath])) {
+                $suites = array_intersect($suites, $filterAppSuites[$relativePath]);
+            }
+            
             $namespace = $this->currentNamespace();
             $this->output->writeln(
                 "\n<fg=white;bg=magenta>\n[$namespace]: tests from $current_dir\n</fg=white;bg=magenta>"
@@ -475,7 +574,6 @@ class Run extends Command
             }
         }
     }
-
 
     protected function currentNamespace()
     {
@@ -509,15 +607,38 @@ class Run extends Command
 
     protected function matchTestFromFilename($filename, $testsPath)
     {
+        $filter = '';
+        if (strpos($filename, ':') !== false) {
+            if ((PHP_OS === 'Windows' || PHP_OS === 'WINNT') && $filename[1] === ':') {
+                // match C:\...
+                list($drive, $path, $filter) = explode(':', $filename, 3);
+                $filename = $drive . ':' . $path;
+            } else {
+                list($filename, $filter) = explode(':', $filename, 2);
+            }
+
+            if ($filter) {
+                $filter = ':' . $filter;
+            }
+        }
+
         $testsPath = str_replace(['//', '\/', '\\'], '/', $testsPath);
         $filename = str_replace(['//', '\/', '\\'], '/', $filename);
+
+        if (rtrim($filename, '/') === $testsPath) {
+            //codecept run tests
+            return ['', '', $filter];
+        }
         $res = preg_match("~^$testsPath/(.*?)(?>/(.*))?$~", $filename, $matches);
 
         if (!$res) {
             throw new \InvalidArgumentException("Test file can't be matched");
         }
         if (!isset($matches[2])) {
-            $matches[2] = null;
+            $matches[2] = '';
+        }
+        if ($filter) {
+            $matches[2] .= $filter;
         }
 
         return $matches;
@@ -596,4 +717,42 @@ class Run extends Command
             );
         }
     }
+    
+    /**
+     * @param  string  $suite_name
+     *
+     * @return bool
+     */
+    private function isWildcardSuiteName($suite_name)
+    {
+        return '*::' === substr($suite_name, 0, 3);
+    }
+    
+    /**
+     * @param  string  $suite_name
+     *
+     * @return bool
+     */
+    private function isSuiteInMultiApplication($suite_name)
+    {
+        return false !== strpos($suite_name, '::');
+    }
+    
+    /**
+     * @return array
+     */
+    private function addRuntimeOptionsToCurrentConfig(array $config)
+    {
+        // update config from options
+        if (count($this->options['override'])) {
+            $config = $this->overrideConfig($this->options['override']);
+        }
+        // enable extensions
+        if ($this->options['ext']) {
+            $config = $this->enableExtensions($this->options['ext']);
+        }
+        
+        return $config;
+    }
+    
 }

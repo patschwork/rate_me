@@ -12,6 +12,8 @@ use Symfony\Component\Finder\SplFileInfo;
 use Symfony\Component\Yaml\Exception\ParseException;
 use Symfony\Component\Yaml\Yaml;
 
+use function array_unique;
+
 class Configuration
 {
     protected static $suites = [];
@@ -31,6 +33,12 @@ class Configuration
      * @see self::projectDir()
      */
     protected static $dir = null;
+
+    /**
+     * @var string Directory of a base configuration file for the project with includes.
+     * @see self::projectDir()
+     */
+    protected static $baseDir = null;
 
     /**
      * @var string Current project output directory.
@@ -125,6 +133,7 @@ class Configuration
             'config' => [],
         ],
         'error_level' => 'E_ALL & ~E_STRICT & ~E_DEPRECATED',
+        'convert_deprecations_to_exceptions' => false
     ];
 
     protected static $params;
@@ -157,6 +166,11 @@ class Configuration
 
         $dir = realpath(dirname($configFile));
         self::$dir = $dir;
+
+        // set the one default base directory for included setup
+        if (!self::$baseDir) {
+            self::$baseDir = $dir;
+        }
 
         $configDistFile = $dir . DIRECTORY_SEPARATOR . 'codeception.dist.yml';
 
@@ -256,7 +270,7 @@ class Configuration
 
         if ($config['settings']['bootstrap']) {
             $bootstrap = self::$config['settings']['bootstrap'];
-            Notification::deprecate("'settings: bootstrap: $bootstrap' option is deprecated! Replace it with: 'bootstrap: $bootstrap' (not under settings section). See https://bit.ly/2YrRzVc ");
+            Notification::deprecate("'settings: bootstrap: $bootstrap' option is deprecated! Replace it with: 'bootstrap: $bootstrap' (not under settings section). See: https://codeception.com/docs/reference/Configuration");
             try {
                 self::loadBootstrap($bootstrap, self::testsDir());
             } catch (ConfigurationException $exception) {
@@ -454,32 +468,6 @@ class Configuration
         return $nonExistentValue;
     }
 
-    /**
-     * Returns all possible suite configurations according environment rules.
-     * Suite configurations will contain `current_environment` key which specifies what environment used.
-     *
-     * @param $suite
-     * @return array
-     * @throws ConfigurationException
-     */
-    public static function suiteEnvironments($suite)
-    {
-        $settings = self::suiteSettings($suite, self::config());
-
-        if (!isset($settings['env']) || !is_array($settings['env'])) {
-            return [];
-        }
-
-        $environments = [];
-
-        foreach ($settings['env'] as $env => $envConfig) {
-            $environments[$env] = $envConfig ? self::mergeConfigs($settings, $envConfig) : $settings;
-            $environments[$env]['current_environment'] = $env;
-        }
-
-        return $environments;
-    }
-
     public static function suites()
     {
         return self::$suites;
@@ -552,7 +540,7 @@ class Configuration
         }
 
         $dir = self::$outputDir . DIRECTORY_SEPARATOR;
-        if (strcmp(self::$outputDir[0], "/") !== 0) {
+        if (!codecept_is_path_absolute($dir)) {
             $dir = self::$dir . DIRECTORY_SEPARATOR . $dir;
         }
 
@@ -592,6 +580,17 @@ class Configuration
     public static function projectDir()
     {
         return self::$dir . DIRECTORY_SEPARATOR;
+    }
+
+    /**
+     * Returns path to the base dir for config which consists with included setup
+     * Returns path to `codeception.yml` which was executed.
+     * If config doesn't have "include" section the result is the same as `projectDir()`
+     * @return string
+     */
+    public static function baseDir()
+    {
+        return self::$baseDir . DIRECTORY_SEPARATOR;
     }
 
 
@@ -778,7 +777,7 @@ class Configuration
             $paths[] = codecept_relative_path($file->getPath());
         }
 
-        return $paths;
+        return array_unique($paths);
     }
 
     private static function prepareParams($settings)

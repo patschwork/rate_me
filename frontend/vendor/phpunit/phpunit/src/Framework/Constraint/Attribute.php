@@ -10,10 +10,13 @@
 namespace PHPUnit\Framework\Constraint;
 
 use PHPUnit\Framework\Assert;
+use PHPUnit\Framework\Exception;
 use PHPUnit\Framework\ExpectationFailedException;
+use SebastianBergmann\RecursionContext\InvalidArgumentException;
 
 /**
  * @deprecated https://github.com/sebastianbergmann/phpunit/issues/3338
+ *
  * @codeCoverageIgnore
  */
 final class Attribute extends Composite
@@ -31,7 +34,7 @@ final class Attribute extends Composite
     }
 
     /**
-     * Evaluates the constraint for parameter $other
+     * Evaluates the constraint for parameter $other.
      *
      * If $returnResult is set to false (the default), an exception is thrown
      * in case of a failure. null is returned otherwise.
@@ -40,9 +43,9 @@ final class Attribute extends Composite
      * a boolean value instead: true in case of success, false in case of a
      * failure.
      *
+     * @throws Exception
      * @throws ExpectationFailedException
-     * @throws \PHPUnit\Framework\Exception
-     * @throws \SebastianBergmann\RecursionContext\InvalidArgumentException
+     * @throws InvalidArgumentException
      */
     public function evaluate($other, string $description = '', bool $returnResult = false)
     {
@@ -65,7 +68,7 @@ final class Attribute extends Composite
     }
 
     /**
-     * Returns the description of the failure
+     * Returns the description of the failure.
      *
      * The beginning of failure messages is "Failed asserting that" in most
      * cases. This method should return the second part of that sentence.

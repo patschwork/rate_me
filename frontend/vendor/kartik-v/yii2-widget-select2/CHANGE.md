@@ -1,6 +1,62 @@
 Change Log: `yii2-widget-select2`
 =================================
 
+## Version 2.2.5
+
+**Date:** 22-Jun-2023
+
+- (enh #357, #354): Update multiple select styling Krajee BS5 theme.
+- (enh #355): Update Bulgarian translations.
+
+
+## Version 2.2.4
+
+**Date:** 29-Aug-2022
+
+- (bug #350): Some options do not work when `hashVarLoadPosition` is `View::POS_READY`.
+- (enh #348): Standardize Krajee theme for each BS version & other style enhancements.
+
+## Version 2.2.3
+
+**Date:** 04-Mar-2022
+
+- (enh #345): Create new theme krajee-bs5 for Bootstrap 5.x.
+- (enh #344): Match language for toggleAll message.
+- (enh #343): Enhance search field auto focus for jQuery 3.6.0.
+- (enh #342): Replace null coalescing operator for BC for PHP 5.x.
+- (enh #340): Enhance Krajee theme for better BSv4.x and BSv5.x support.
+- (enh #339): Enhance Krajee theme to support BSv5.x floating labels.
+
+## Version 2.2.2
+
+**Date:** 02-Sep-2021
+
+- (enh #338): Enhancements to support Bootstrap v5.x.
+
+## Version 2.2.1
+
+**Date:** 09-Jun-2021
+
+- (enh #334): Correct multiple select placeholder styles.
+- (enh #332): Enhance Select2 required attribute validation when used with model.
+- Fix Krajee BS themes styling for multiple select.
+
+## Version 2.2.0
+
+**Date:** 28-Sep-2020
+
+- Fix Krajee BS themes styling for multiple select.
+- (enh #330): More correct hyphen validation for select all.
+
+## Version 2.1.9
+
+**Date:** 25-Sep-2020
+
+- (enh #330): Fix select all for option values containing hyphen.
+- (enh #329): Minor fixes to select2 krajee theme.
+- (enh #328): Fix undefined options in select all.
+- (enh #325): Use `hashVarLoadPosition` to initialize Select2 hash variable.
+
 ## Version 2.1.8
 
 **Date:** 21-Jul-2020

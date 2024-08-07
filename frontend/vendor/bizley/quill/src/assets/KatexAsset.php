@@ -3,11 +3,10 @@
 namespace bizley\quill\assets;
 
 use yii\web\AssetBundle;
-use yii\web\View;
 
 /**
  * KaTeX assets.
- *
+ * 
  * KaTeX can be found at
  * https://khan.github.io/KaTeX/
  * https://github.com/Khan/KaTeX
@@ -27,8 +26,8 @@ class KatexAsset extends AssetBundle
     public $version;
     
     /**
-     * Registers CSS and JS file based on version.
-     * @param View $view the view that the asset files are to be registered with.
+     * Register CSS and JS file based on version.
+     * @param \yii\web\View $view the view that the asset files are to be registered with.
      */
     public function registerAssetFiles($view)
     {

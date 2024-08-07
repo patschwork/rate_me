@@ -9,6 +9,27 @@
  */
 namespace PHPUnit\TextUI;
 
+use const PHP_EOL;
+use const PHP_MAJOR_VERSION;
+use const PHP_SAPI;
+use function array_diff;
+use function assert;
+use function class_exists;
+use function count;
+use function dirname;
+use function extension_loaded;
+use function file_put_contents;
+use function htmlspecialchars;
+use function ini_get;
+use function is_int;
+use function is_string;
+use function is_subclass_of;
+use function mt_srand;
+use function range;
+use function realpath;
+use function sprintf;
+use function strpos;
+use function time;
 use PHPUnit\Framework\Exception;
 use PHPUnit\Framework\Test;
 use PHPUnit\Framework\TestCase;
@@ -42,6 +63,8 @@ use PHPUnit\Util\TestDox\HtmlResultPrinter;
 use PHPUnit\Util\TestDox\TextResultPrinter;
 use PHPUnit\Util\TestDox\XmlResultPrinter;
 use PHPUnit\Util\XdebugFilterScriptGenerator;
+use ReflectionClass;
+use ReflectionException;
 use SebastianBergmann\CodeCoverage\CodeCoverage;
 use SebastianBergmann\CodeCoverage\Exception as CodeCoverageException;
 use SebastianBergmann\CodeCoverage\Filter as CodeCoverageFilter;
@@ -62,15 +85,8 @@ use SebastianBergmann\Timer\Timer;
 final class TestRunner extends BaseTestRunner
 {
     public const SUCCESS_EXIT   = 0;
-
     public const FAILURE_EXIT   = 1;
-
     public const EXCEPTION_EXIT = 2;
-
-    /**
-     * @var bool
-     */
-    private static $versionStringPrinted = false;
 
     /**
      * @var CodeCoverageFilter
@@ -83,7 +99,7 @@ final class TestRunner extends BaseTestRunner
     private $loader;
 
     /**
-     * @var Printer&TestListener
+     * @psalm-var Printer&TestListener
      */
     private $printer;
 
@@ -102,7 +118,7 @@ final class TestRunner extends BaseTestRunner
      */
     private $extensions = [];
 
-    public function __construct(TestSuiteLoader $loader = null, CodeCoverageFilter $filter = null)
+    public function __construct(?TestSuiteLoader $loader = null, ?CodeCoverageFilter $filter = null)
     {
         if ($filter === null) {
             $filter = new CodeCoverageFilter;
@@ -117,7 +133,7 @@ final class TestRunner extends BaseTestRunner
      * @throws \PHPUnit\Runner\Exception
      * @throws Exception
      */
-    public function doRun(Test $suite, array $arguments = [], bool $exit = true): TestResult
+    public function doRun(Test $suite, array $arguments = [], array $warnings = [], bool $exit = true): TestResult
     {
         if (isset($arguments['configuration'])) {
             $GLOBALS['__PHPUNIT_CONFIGURATION_FILE'] = $arguments['configuration'];
@@ -125,7 +141,7 @@ final class TestRunner extends BaseTestRunner
 
         $this->handleConfiguration($arguments);
 
-        if (\is_int($arguments['columns']) && $arguments['columns'] < 16) {
+        if (is_int($arguments['columns']) && $arguments['columns'] < 16) {
             $arguments['columns']   = 16;
             $tooFewColumnsRequested = true;
         }
@@ -149,7 +165,7 @@ final class TestRunner extends BaseTestRunner
         }
 
         if ($arguments['executionOrder'] === TestSuiteSorter::ORDER_RANDOMIZED) {
-            \mt_srand($arguments['randomOrderSeed']);
+            mt_srand($arguments['randomOrderSeed']);
         }
 
         if ($arguments['cacheResult']) {
@@ -162,10 +178,10 @@ final class TestRunner extends BaseTestRunner
 
                 $arguments['cacheResultFile'] = null;
 
-                $cacheResultFile = \realpath($cacheLocation);
+                $cacheResultFile = realpath($cacheLocation);
 
                 if ($cacheResultFile !== false) {
-                    $arguments['cacheResultFile'] = \dirname($cacheResultFile);
+                    $arguments['cacheResultFile'] = dirname($cacheResultFile);
                 }
             }
 
@@ -187,11 +203,11 @@ final class TestRunner extends BaseTestRunner
             unset($sorter);
         }
 
-        if (\is_int($arguments['repeat']) && $arguments['repeat'] > 0) {
+        if (is_int($arguments['repeat']) && $arguments['repeat'] > 0) {
             $_suite = new TestSuite;
 
             /* @noinspection PhpUnusedLocalVariableInspection */
-            foreach (\range(1, $arguments['repeat']) as $step) {
+            foreach (range(1, $arguments['repeat']) as $step) {
                 $_suite->addTest($suite);
             }
 
@@ -219,8 +235,8 @@ final class TestRunner extends BaseTestRunner
 
         unset($listener, $listenerNeeded);
 
-        if (!$arguments['convertDeprecationsToExceptions']) {
-            $result->convertDeprecationsToExceptions(false);
+        if ($arguments['convertDeprecationsToExceptions']) {
+            $result->convertDeprecationsToExceptions(true);
         }
 
         if (!$arguments['convertErrorsToExceptions']) {
@@ -271,20 +287,20 @@ final class TestRunner extends BaseTestRunner
             if (isset($arguments['printer'])) {
                 if ($arguments['printer'] instanceof Printer && $arguments['printer'] instanceof TestListener) {
                     $this->printer = $arguments['printer'];
-                } elseif (\is_string($arguments['printer']) && \class_exists($arguments['printer'], false)) {
+                } elseif (is_string($arguments['printer']) && class_exists($arguments['printer'], false)) {
                     try {
-                        new \ReflectionClass($arguments['printer']);
+                        new ReflectionClass($arguments['printer']);
                         // @codeCoverageIgnoreStart
-                    } catch (\ReflectionException $e) {
+                    } catch (ReflectionException $e) {
                         throw new Exception(
                             $e->getMessage(),
-                            (int) $e->getCode(),
+                            $e->getCode(),
                             $e
                         );
                     }
                     // @codeCoverageIgnoreEnd
 
-                    if (\is_subclass_of($arguments['printer'], ResultPrinter::class)) {
+                    if (is_subclass_of($arguments['printer'], ResultPrinter::class)) {
                         $this->printer = $this->createPrinter($arguments['printer'], $arguments);
                     }
                 }
@@ -294,17 +310,13 @@ final class TestRunner extends BaseTestRunner
         }
 
         if (isset($originalExecutionOrder) && $this->printer instanceof CliTestDoxPrinter) {
-            \assert($this->printer instanceof CliTestDoxPrinter);
+            assert($this->printer instanceof CliTestDoxPrinter);
 
             $this->printer->setOriginalExecutionOrder($originalExecutionOrder);
             $this->printer->setShowProgressAnimation(!$arguments['noInteraction']);
         }
 
-        $this->printer->write(
-            Version::getVersionString() . "\n"
-        );
-
-        self::$versionStringPrinted = true;
+        $this->write(Version::getVersionString() . "\n");
 
         if ($arguments['verbose']) {
             $this->writeMessage('Runtime', $this->runtime->getNameWithVersionAndCodeCoverageDriver());
@@ -331,7 +343,7 @@ final class TestRunner extends BaseTestRunner
             }
         }
 
-        foreach ($arguments['warnings'] as $warning) {
+        foreach ($warnings as $warning) {
             $this->writeMessage('Warning', $warning);
         }
 
@@ -356,10 +368,10 @@ final class TestRunner extends BaseTestRunner
             );
 
             foreach ($arguments['configuration']->getValidationErrors() as $line => $errors) {
-                $this->write(\sprintf("\n  Line %d:\n", $line));
+                $this->write(sprintf("\n  Line %d:\n", $line));
 
                 foreach ($errors as $msg) {
-                    $this->write(\sprintf("  - %s\n", $msg));
+                    $this->write(sprintf("  - %s\n", $msg));
                 }
             }
 
@@ -451,7 +463,7 @@ final class TestRunner extends BaseTestRunner
             $codeCoverageReports = 0;
         }
 
-        if ($codeCoverageReports > 0 && !$this->runtime->canCollectCodeCoverage()) {
+        if ($codeCoverageReports > 0 && PHP_MAJOR_VERSION < 8 && !$this->runtime->canCollectCodeCoverage()) {
             $this->writeMessage('Error', 'No code coverage driver is available');
 
             $codeCoverageReports = 0;
@@ -503,59 +515,71 @@ final class TestRunner extends BaseTestRunner
         }
 
         if ($codeCoverageReports > 0) {
-            $codeCoverage = new CodeCoverage(
-                null,
-                $this->codeCoverageFilter
-            );
-
-            $codeCoverage->setUnintentionallyCoveredSubclassesWhitelist(
-                [Comparator::class]
-            );
-
-            $codeCoverage->setCheckForUnintentionallyCoveredCode(
-                $arguments['strictCoverage']
-            );
-
-            $codeCoverage->setCheckForMissingCoversAnnotation(
-                $arguments['strictCoverage']
-            );
-
-            if (isset($arguments['forceCoversAnnotation'])) {
-                $codeCoverage->setForceCoversAnnotation(
-                    $arguments['forceCoversAnnotation']
-                );
-            }
-
-            if (isset($arguments['ignoreDeprecatedCodeUnitsFromCodeCoverage'])) {
-                $codeCoverage->setIgnoreDeprecatedCode(
-                    $arguments['ignoreDeprecatedCodeUnitsFromCodeCoverage']
-                );
-            }
-
-            if (isset($arguments['disableCodeCoverageIgnore'])) {
-                $codeCoverage->setDisableIgnoredLines(true);
-            }
-
-            if (!empty($filterConfiguration['whitelist'])) {
-                $codeCoverage->setAddUncoveredFilesFromWhitelist(
-                    $filterConfiguration['whitelist']['addUncoveredFilesFromWhitelist']
-                );
-
-                $codeCoverage->setProcessUncoveredFilesFromWhitelist(
-                    $filterConfiguration['whitelist']['processUncoveredFilesFromWhitelist']
-                );
-            }
-
-            if (!$this->codeCoverageFilter->hasWhitelist()) {
-                if (!$whitelistFromConfigurationFile && !$whitelistFromOption) {
-                    $this->writeMessage('Error', 'No whitelist is configured, no code coverage will be generated.');
-                } else {
-                    $this->writeMessage('Error', 'Incorrect whitelist config, no code coverage will be generated.');
-                }
+            if (PHP_MAJOR_VERSION >= 8) {
+                $this->writeMessage('Error', 'This version of PHPUnit does not support code coverage on PHP 8');
 
                 $codeCoverageReports = 0;
+            } else {
+                try {
+                    $codeCoverage = new CodeCoverage(
+                        null,
+                        $this->codeCoverageFilter
+                    );
 
-                unset($codeCoverage);
+                    $codeCoverage->setUnintentionallyCoveredSubclassesWhitelist(
+                        [Comparator::class]
+                    );
+
+                    $codeCoverage->setCheckForUnintentionallyCoveredCode(
+                        $arguments['strictCoverage']
+                    );
+
+                    $codeCoverage->setCheckForMissingCoversAnnotation(
+                        $arguments['strictCoverage']
+                    );
+
+                    if (isset($arguments['forceCoversAnnotation'])) {
+                        $codeCoverage->setForceCoversAnnotation(
+                            $arguments['forceCoversAnnotation']
+                        );
+                    }
+
+                    if (isset($arguments['ignoreDeprecatedCodeUnitsFromCodeCoverage'])) {
+                        $codeCoverage->setIgnoreDeprecatedCode(
+                            $arguments['ignoreDeprecatedCodeUnitsFromCodeCoverage']
+                        );
+                    }
+
+                    if (isset($arguments['disableCodeCoverageIgnore'])) {
+                        $codeCoverage->setDisableIgnoredLines(true);
+                    }
+
+                    if (!empty($filterConfiguration['whitelist'])) {
+                        $codeCoverage->setAddUncoveredFilesFromWhitelist(
+                            $filterConfiguration['whitelist']['addUncoveredFilesFromWhitelist']
+                        );
+
+                        $codeCoverage->setProcessUncoveredFilesFromWhitelist(
+                            $filterConfiguration['whitelist']['processUncoveredFilesFromWhitelist']
+                        );
+                    }
+
+                    if (!$this->codeCoverageFilter->hasWhitelist()) {
+                        if (!$whitelistFromConfigurationFile && !$whitelistFromOption) {
+                            $this->writeMessage('Error', 'No whitelist is configured, no code coverage will be generated.');
+                        } else {
+                            $this->writeMessage('Error', 'Incorrect whitelist config, no code coverage will be generated.');
+                        }
+
+                        $codeCoverageReports = 0;
+
+                        unset($codeCoverage);
+                    }
+                } catch (CodeCoverageException $e) {
+                    $this->writeMessage('Error', $e->getMessage());
+
+                    $codeCoverageReports = 0;
+                }
             }
         }
 
@@ -564,20 +588,20 @@ final class TestRunner extends BaseTestRunner
 
             $script = (new XdebugFilterScriptGenerator)->generate($filterConfiguration['whitelist']);
 
-            if ($arguments['xdebugFilterFile'] !== 'php://stdout' && $arguments['xdebugFilterFile'] !== 'php://stderr' && !Filesystem::createDirectory(\dirname($arguments['xdebugFilterFile']))) {
-                $this->write(\sprintf('Cannot write Xdebug filter script to %s ' . \PHP_EOL, $arguments['xdebugFilterFile']));
+            if ($arguments['xdebugFilterFile'] !== 'php://stdout' && $arguments['xdebugFilterFile'] !== 'php://stderr' && !Filesystem::createDirectory(dirname($arguments['xdebugFilterFile']))) {
+                $this->write(sprintf('Cannot write Xdebug filter script to %s ' . PHP_EOL, $arguments['xdebugFilterFile']));
 
                 exit(self::EXCEPTION_EXIT);
             }
 
-            \file_put_contents($arguments['xdebugFilterFile'], $script);
+            file_put_contents($arguments['xdebugFilterFile'], $script);
 
-            $this->write(\sprintf('Wrote Xdebug filter script to %s ' . \PHP_EOL, $arguments['xdebugFilterFile']));
+            $this->write(sprintf('Wrote Xdebug filter script to %s ' . PHP_EOL, $arguments['xdebugFilterFile']));
 
             exit(self::SUCCESS_EXIT);
         }
 
-        $this->printer->write("\n");
+        $this->write("\n");
 
         if (isset($codeCoverage)) {
             $result->setCodeCoverage($codeCoverage);
@@ -593,11 +617,11 @@ final class TestRunner extends BaseTestRunner
         $result->beStrictAboutResourceUsageDuringSmallTests($arguments['beStrictAboutResourceUsageDuringSmallTests']);
 
         if ($arguments['enforceTimeLimit'] === true) {
-            if (!\class_exists(Invoker::class)) {
+            if (!class_exists(Invoker::class)) {
                 $this->writeMessage('Error', 'Package phpunit/php-invoker is required for enforcing time limits');
             }
 
-            if (!\extension_loaded('pcntl') || \strpos(\ini_get('disable_functions'), 'pcntl') !== false) {
+            if (!extension_loaded('pcntl') || strpos(ini_get('disable_functions'), 'pcntl') !== false) {
                 $this->writeMessage('Error', 'PHP extension pcntl is required for enforcing time limits');
             }
         }
@@ -670,7 +694,7 @@ final class TestRunner extends BaseTestRunner
                     $writer = new HtmlReport(
                         $arguments['reportLowUpperBound'],
                         $arguments['reportHighLowerBound'],
-                        \sprintf(
+                        sprintf(
                             ' and <a href="https://phpunit.de/">PHPUnit %s</a>',
                             Version::id()
                         )
@@ -791,7 +815,7 @@ final class TestRunner extends BaseTestRunner
      */
     protected function runFailed(string $message): void
     {
-        $this->write($message . \PHP_EOL);
+        $this->write($message . PHP_EOL);
 
         exit(self::FAILURE_EXIT);
     }
@@ -803,8 +827,8 @@ final class TestRunner extends BaseTestRunner
 
     private function write(string $buffer): void
     {
-        if (\PHP_SAPI !== 'cli' && \PHP_SAPI !== 'phpdbg') {
-            $buffer = \htmlspecialchars($buffer);
+        if (PHP_SAPI !== 'cli' && PHP_SAPI !== 'phpdbg') {
+            $buffer = htmlspecialchars($buffer);
         }
 
         if ($this->printer !== null) {
@@ -1024,17 +1048,17 @@ final class TestRunner extends BaseTestRunner
             }
 
             if (!empty($groupConfiguration['exclude']) && !isset($arguments['excludeGroups'])) {
-                $arguments['excludeGroups'] = \array_diff($groupConfiguration['exclude'], $groupCliArgs);
+                $arguments['excludeGroups'] = array_diff($groupConfiguration['exclude'], $groupCliArgs);
             }
 
             foreach ($arguments['configuration']->getExtensionConfiguration() as $extension) {
-                if ($extension['file'] !== '' && !\class_exists($extension['class'], false)) {
+                if ($extension['file'] !== '' && !class_exists($extension['class'], false)) {
                     require_once $extension['file'];
                 }
 
-                if (!\class_exists($extension['class'])) {
+                if (!class_exists($extension['class'])) {
                     throw new Exception(
-                        \sprintf(
+                        sprintf(
                             'Class "%s" does not exist',
                             $extension['class']
                         )
@@ -1042,12 +1066,12 @@ final class TestRunner extends BaseTestRunner
                 }
 
                 try {
-                    $extensionClass = new \ReflectionClass($extension['class']);
+                    $extensionClass = new ReflectionClass($extension['class']);
                     // @codeCoverageIgnoreStart
-                } catch (\ReflectionException $e) {
+                } catch (ReflectionException $e) {
                     throw new Exception(
                         $e->getMessage(),
-                        (int) $e->getCode(),
+                        $e->getCode(),
                         $e
                     );
                 }
@@ -1055,14 +1079,14 @@ final class TestRunner extends BaseTestRunner
 
                 if (!$extensionClass->implementsInterface(Hook::class)) {
                     throw new Exception(
-                        \sprintf(
+                        sprintf(
                             'Class "%s" does not implement a PHPUnit\Runner\Hook interface',
                             $extension['class']
                         )
                     );
                 }
 
-                if (\count($extension['arguments']) === 0) {
+                if (count($extension['arguments']) === 0) {
                     $extensionObject = $extensionClass->newInstance();
                 } else {
                     $extensionObject = $extensionClass->newInstanceArgs(
@@ -1070,19 +1094,19 @@ final class TestRunner extends BaseTestRunner
                     );
                 }
 
-                \assert($extensionObject instanceof Hook);
+                assert($extensionObject instanceof Hook);
 
                 $this->addExtension($extensionObject);
             }
 
             foreach ($arguments['configuration']->getListenerConfiguration() as $listener) {
-                if ($listener['file'] !== '' && !\class_exists($listener['class'], false)) {
+                if ($listener['file'] !== '' && !class_exists($listener['class'], false)) {
                     require_once $listener['file'];
                 }
 
-                if (!\class_exists($listener['class'])) {
+                if (!class_exists($listener['class'])) {
                     throw new Exception(
-                        \sprintf(
+                        sprintf(
                             'Class "%s" does not exist',
                             $listener['class']
                         )
@@ -1090,12 +1114,12 @@ final class TestRunner extends BaseTestRunner
                 }
 
                 try {
-                    $listenerClass = new \ReflectionClass($listener['class']);
+                    $listenerClass = new ReflectionClass($listener['class']);
                     // @codeCoverageIgnoreStart
-                } catch (\ReflectionException $e) {
+                } catch (ReflectionException $e) {
                     throw new Exception(
                         $e->getMessage(),
-                        (int) $e->getCode(),
+                        $e->getCode(),
                         $e
                     );
                 }
@@ -1103,14 +1127,14 @@ final class TestRunner extends BaseTestRunner
 
                 if (!$listenerClass->implementsInterface(TestListener::class)) {
                     throw new Exception(
-                        \sprintf(
+                        sprintf(
                             'Class "%s" does not implement the PHPUnit\Framework\TestListener interface',
                             $listener['class']
                         )
                     );
                 }
 
-                if (\count($listener['arguments']) === 0) {
+                if (count($listener['arguments']) === 0) {
                     $listener = new $listener['class'];
                 } else {
                     $listener = $listenerClass->newInstanceArgs(
@@ -1201,55 +1225,60 @@ final class TestRunner extends BaseTestRunner
             }
         }
 
-        $arguments['addUncoveredFilesFromWhitelist']                      = $arguments['addUncoveredFilesFromWhitelist'] ?? true;
-        $arguments['backupGlobals']                                       = $arguments['backupGlobals'] ?? null;
-        $arguments['backupStaticAttributes']                              = $arguments['backupStaticAttributes'] ?? null;
-        $arguments['beStrictAboutChangesToGlobalState']                   = $arguments['beStrictAboutChangesToGlobalState'] ?? null;
-        $arguments['beStrictAboutResourceUsageDuringSmallTests']          = $arguments['beStrictAboutResourceUsageDuringSmallTests'] ?? false;
-        $arguments['cacheResult']                                         = $arguments['cacheResult'] ?? true;
-        $arguments['cacheTokens']                                         = $arguments['cacheTokens'] ?? false;
-        $arguments['colors']                                              = $arguments['colors'] ?? ResultPrinter::COLOR_DEFAULT;
-        $arguments['columns']                                             = $arguments['columns'] ?? 80;
-        $arguments['convertDeprecationsToExceptions']                     = $arguments['convertDeprecationsToExceptions'] ?? true;
-        $arguments['convertErrorsToExceptions']                           = $arguments['convertErrorsToExceptions'] ?? true;
-        $arguments['convertNoticesToExceptions']                          = $arguments['convertNoticesToExceptions'] ?? true;
-        $arguments['convertWarningsToExceptions']                         = $arguments['convertWarningsToExceptions'] ?? true;
-        $arguments['crap4jThreshold']                                     = $arguments['crap4jThreshold'] ?? 30;
-        $arguments['disallowTestOutput']                                  = $arguments['disallowTestOutput'] ?? false;
-        $arguments['disallowTodoAnnotatedTests']                          = $arguments['disallowTodoAnnotatedTests'] ?? false;
-        $arguments['defaultTimeLimit']                                    = $arguments['defaultTimeLimit'] ?? 0;
-        $arguments['enforceTimeLimit']                                    = $arguments['enforceTimeLimit'] ?? false;
-        $arguments['excludeGroups']                                       = $arguments['excludeGroups'] ?? [];
-        $arguments['executionOrder']                                      = $arguments['executionOrder'] ?? TestSuiteSorter::ORDER_DEFAULT;
-        $arguments['executionOrderDefects']                               = $arguments['executionOrderDefects'] ?? TestSuiteSorter::ORDER_DEFAULT;
-        $arguments['failOnRisky']                                         = $arguments['failOnRisky'] ?? false;
-        $arguments['failOnWarning']                                       = $arguments['failOnWarning'] ?? false;
-        $arguments['groups']                                              = $arguments['groups'] ?? [];
-        $arguments['noInteraction']                                       = $arguments['noInteraction'] ?? false;
-        $arguments['processIsolation']                                    = $arguments['processIsolation'] ?? false;
-        $arguments['processUncoveredFilesFromWhitelist']                  = $arguments['processUncoveredFilesFromWhitelist'] ?? false;
-        $arguments['randomOrderSeed']                                     = $arguments['randomOrderSeed'] ?? \time();
-        $arguments['registerMockObjectsFromTestArgumentsRecursively']     = $arguments['registerMockObjectsFromTestArgumentsRecursively'] ?? false;
-        $arguments['repeat']                                              = $arguments['repeat'] ?? false;
-        $arguments['reportHighLowerBound']                                = $arguments['reportHighLowerBound'] ?? 90;
-        $arguments['reportLowUpperBound']                                 = $arguments['reportLowUpperBound'] ?? 50;
-        $arguments['reportUselessTests']                                  = $arguments['reportUselessTests'] ?? true;
-        $arguments['reverseList']                                         = $arguments['reverseList'] ?? false;
-        $arguments['resolveDependencies']                                 = $arguments['resolveDependencies'] ?? true;
-        $arguments['stopOnError']                                         = $arguments['stopOnError'] ?? false;
-        $arguments['stopOnFailure']                                       = $arguments['stopOnFailure'] ?? false;
-        $arguments['stopOnIncomplete']                                    = $arguments['stopOnIncomplete'] ?? false;
-        $arguments['stopOnRisky']                                         = $arguments['stopOnRisky'] ?? false;
-        $arguments['stopOnSkipped']                                       = $arguments['stopOnSkipped'] ?? false;
-        $arguments['stopOnWarning']                                       = $arguments['stopOnWarning'] ?? false;
-        $arguments['stopOnDefect']                                        = $arguments['stopOnDefect'] ?? false;
-        $arguments['strictCoverage']                                      = $arguments['strictCoverage'] ?? false;
-        $arguments['testdoxExcludeGroups']                                = $arguments['testdoxExcludeGroups'] ?? [];
-        $arguments['testdoxGroups']                                       = $arguments['testdoxGroups'] ?? [];
-        $arguments['timeoutForLargeTests']                                = $arguments['timeoutForLargeTests'] ?? 60;
-        $arguments['timeoutForMediumTests']                               = $arguments['timeoutForMediumTests'] ?? 10;
-        $arguments['timeoutForSmallTests']                                = $arguments['timeoutForSmallTests'] ?? 1;
-        $arguments['verbose']                                             = $arguments['verbose'] ?? false;
+        $arguments['addUncoveredFilesFromWhitelist']                  = $arguments['addUncoveredFilesFromWhitelist'] ?? true;
+        $arguments['backupGlobals']                                   = $arguments['backupGlobals'] ?? null;
+        $arguments['backupStaticAttributes']                          = $arguments['backupStaticAttributes'] ?? null;
+        $arguments['beStrictAboutChangesToGlobalState']               = $arguments['beStrictAboutChangesToGlobalState'] ?? null;
+        $arguments['beStrictAboutResourceUsageDuringSmallTests']      = $arguments['beStrictAboutResourceUsageDuringSmallTests'] ?? false;
+        $arguments['cacheResult']                                     = $arguments['cacheResult'] ?? true;
+        $arguments['cacheTokens']                                     = $arguments['cacheTokens'] ?? false;
+        $arguments['colors']                                          = $arguments['colors'] ?? ResultPrinter::COLOR_DEFAULT;
+        $arguments['columns']                                         = $arguments['columns'] ?? 80;
+        $arguments['convertDeprecationsToExceptions']                 = $arguments['convertDeprecationsToExceptions'] ?? false;
+        $arguments['convertErrorsToExceptions']                       = $arguments['convertErrorsToExceptions'] ?? true;
+        $arguments['convertNoticesToExceptions']                      = $arguments['convertNoticesToExceptions'] ?? true;
+        $arguments['convertWarningsToExceptions']                     = $arguments['convertWarningsToExceptions'] ?? true;
+        $arguments['crap4jThreshold']                                 = $arguments['crap4jThreshold'] ?? 30;
+        $arguments['disallowTestOutput']                              = $arguments['disallowTestOutput'] ?? false;
+        $arguments['disallowTodoAnnotatedTests']                      = $arguments['disallowTodoAnnotatedTests'] ?? false;
+        $arguments['defaultTimeLimit']                                = $arguments['defaultTimeLimit'] ?? 0;
+        $arguments['enforceTimeLimit']                                = $arguments['enforceTimeLimit'] ?? false;
+        $arguments['excludeGroups']                                   = $arguments['excludeGroups'] ?? [];
+        $arguments['executionOrder']                                  = $arguments['executionOrder'] ?? TestSuiteSorter::ORDER_DEFAULT;
+        $arguments['executionOrderDefects']                           = $arguments['executionOrderDefects'] ?? TestSuiteSorter::ORDER_DEFAULT;
+        $arguments['failOnRisky']                                     = $arguments['failOnRisky'] ?? false;
+        $arguments['failOnWarning']                                   = $arguments['failOnWarning'] ?? false;
+        $arguments['groups']                                          = $arguments['groups'] ?? [];
+        $arguments['noInteraction']                                   = $arguments['noInteraction'] ?? false;
+        $arguments['processIsolation']                                = $arguments['processIsolation'] ?? false;
+        $arguments['processUncoveredFilesFromWhitelist']              = $arguments['processUncoveredFilesFromWhitelist'] ?? false;
+        $arguments['randomOrderSeed']                                 = $arguments['randomOrderSeed'] ?? time();
+        $arguments['registerMockObjectsFromTestArgumentsRecursively'] = $arguments['registerMockObjectsFromTestArgumentsRecursively'] ?? false;
+        $arguments['repeat']                                          = $arguments['repeat'] ?? false;
+        $arguments['reportHighLowerBound']                            = $arguments['reportHighLowerBound'] ?? 90;
+        $arguments['reportLowUpperBound']                             = $arguments['reportLowUpperBound'] ?? 50;
+        $arguments['reportUselessTests']                              = $arguments['reportUselessTests'] ?? true;
+        $arguments['reverseList']                                     = $arguments['reverseList'] ?? false;
+        $arguments['resolveDependencies']                             = $arguments['resolveDependencies'] ?? true;
+        $arguments['stopOnError']                                     = $arguments['stopOnError'] ?? false;
+        $arguments['stopOnFailure']                                   = $arguments['stopOnFailure'] ?? false;
+        $arguments['stopOnIncomplete']                                = $arguments['stopOnIncomplete'] ?? false;
+        $arguments['stopOnRisky']                                     = $arguments['stopOnRisky'] ?? false;
+        $arguments['stopOnSkipped']                                   = $arguments['stopOnSkipped'] ?? false;
+        $arguments['stopOnWarning']                                   = $arguments['stopOnWarning'] ?? false;
+        $arguments['stopOnDefect']                                    = $arguments['stopOnDefect'] ?? false;
+        $arguments['strictCoverage']                                  = $arguments['strictCoverage'] ?? false;
+        $arguments['testdoxExcludeGroups']                            = $arguments['testdoxExcludeGroups'] ?? [];
+        $arguments['testdoxGroups']                                   = $arguments['testdoxGroups'] ?? [];
+        $arguments['timeoutForLargeTests']                            = $arguments['timeoutForLargeTests'] ?? 60;
+        $arguments['timeoutForMediumTests']                           = $arguments['timeoutForMediumTests'] ?? 10;
+        $arguments['timeoutForSmallTests']                            = $arguments['timeoutForSmallTests'] ?? 1;
+        $arguments['verbose']                                         = $arguments['verbose'] ?? false;
+
+        if ($arguments['reportLowUpperBound'] > $arguments['reportHighLowerBound']) {
+            $arguments['reportLowUpperBound']  = 50;
+            $arguments['reportHighLowerBound'] = 90;
+        }
     }
 
     private function processSuiteFilters(TestSuite $suite, array $arguments): void
@@ -1264,21 +1293,21 @@ final class TestRunner extends BaseTestRunner
 
         if (!empty($arguments['excludeGroups'])) {
             $filterFactory->addFilter(
-                new \ReflectionClass(ExcludeGroupFilterIterator::class),
+                new ReflectionClass(ExcludeGroupFilterIterator::class),
                 $arguments['excludeGroups']
             );
         }
 
         if (!empty($arguments['groups'])) {
             $filterFactory->addFilter(
-                new \ReflectionClass(IncludeGroupFilterIterator::class),
+                new ReflectionClass(IncludeGroupFilterIterator::class),
                 $arguments['groups']
             );
         }
 
         if ($arguments['filter']) {
             $filterFactory->addFilter(
-                new \ReflectionClass(NameFilterIterator::class),
+                new ReflectionClass(NameFilterIterator::class),
                 $arguments['filter']
             );
         }
@@ -1293,7 +1322,7 @@ final class TestRunner extends BaseTestRunner
         }
 
         $this->write(
-            \sprintf(
+            sprintf(
                 "%-15s%s\n",
                 $type . ':',
                 $message
@@ -1324,8 +1353,8 @@ final class TestRunner extends BaseTestRunner
 
     private function codeCoverageGenerationStart(string $format): void
     {
-        $this->printer->write(
-            \sprintf(
+        $this->write(
+            sprintf(
                 "\nGenerating code coverage report in %s format ... ",
                 $format
             )
@@ -1336,8 +1365,8 @@ final class TestRunner extends BaseTestRunner
 
     private function codeCoverageGenerationSucceeded(): void
     {
-        $this->printer->write(
-            \sprintf(
+        $this->write(
+            sprintf(
                 "done [%s]\n",
                 Timer::secondsToTimeString(Timer::stop())
             )
@@ -1346,8 +1375,8 @@ final class TestRunner extends BaseTestRunner
 
     private function codeCoverageGenerationFailed(\Exception $e): void
     {
-        $this->printer->write(
-            \sprintf(
+        $this->write(
+            sprintf(
                 "failed [%s]\n%s\n",
                 Timer::secondsToTimeString(Timer::stop()),
                 $e->getMessage()
