@@ -18,6 +18,17 @@ To remember good 🙂 👍<br>
 Done.
 Open the application in your browser of choice.
 
+## Weired things...
+If you encouter strange PHP errors for the frontend, try to run:
+`composer update` in the frontend folder. This will update everything needed for your PHP version. 
+
+## Run local server (for development)
+You can run the frontend application without an installed Apache or Nginx. 
+
+- Go to the frontend folder in a terminal
+- Run `php yii serve 0.0.0.0 --docroot="$(pwd)/frontend/web" --port=8888`
+- Open your browser and go to http://localhost:8888
+
 # Configuration
 
 ## Type
